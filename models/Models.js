@@ -1,16 +1,16 @@
 const mongoose = require('mongoose');
 
 const adminSchema = new mongoose.Schema({
-    UserName: {
-        type: String,
-        required: true   
-    },
-    Password: {
-        type: String,
-        required: true
-    }
+  UserName: {
+    type: String,
+    required: true
+  },
+  Password: {
+    type: String,
+    required: true
+  }
 }, {
-    timestamps: true 
+  timestamps: true
 });
 
 const devDayAttendanceSchema = new mongoose.Schema({
@@ -40,4 +40,4 @@ const eventSchema = new mongoose.Schema({
 const DevDayAttendance = mongoose.model("DevDayAttendance", devDayAttendanceSchema);
 const Event = mongoose.model("Event", eventSchema);
 const Admin = mongoose.model('Admin', adminSchema);
-module.exports = { Admin,DevDayAttendance, Event };
+module.exports = { Admin, DevDayAttendance, Event };
