@@ -1,5 +1,5 @@
 const express = require('express');
-const { DevDayAttendance } = require('../models/Models');
+const { DevDayAttendance, Event } = require('../models/Models');
 
 const router = express.Router();
 
@@ -36,6 +36,18 @@ router.post('/mark', async (req, res) => {
             if (!team) {
                 return res.status(404).json({ message: "Team not found" });
             }
+
+            const event = await Event.findOne({ competitionName: team.Competition });
+            if (!event) {
+                return res.status(404).json({ message: "Event not found (invalid team code)" });
+            }
+
+            // check if the event is not ongoing
+            const now = new Date();
+            if (now < event.start_time || now > event.end_time) {
+                return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
+            }
+
             // attendacne is marked already
             if (team.attendance) {
                 return res.status(400).json({ message: "Attendance is already marked for this team" });

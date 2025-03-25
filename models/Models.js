@@ -26,7 +26,7 @@ const devDayAttendanceSchema = new mongoose.Schema({
   mem3_email: { type: String, default: "" },
   mem4_name: { type: String, default: "" },
   mem4_email: { type: String, default: "" },
-  att_code: { type: String, required: true },
+  att_code: { type: String, required: true, unique: true },
   Competition: { type: String, required: true },
   attendance: { type: Boolean, default: false },
 }, { timestamps: true });
