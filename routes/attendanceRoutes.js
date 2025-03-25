@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
 });
 
 // to mark attendance - for general public
-//Attendance marking {location, code}
+// Attendance marking {location, code}
 router.post('/mark', async (req, res) => {
     const { att_code, latitude, longitude } = req.body;
     if (!att_code || latitude === undefined || longitude === undefined) {

@@ -9,8 +9,8 @@ router.use(cookieParser());
 
 router.post('/login', async (req, res) => {
     try {
-        const { username, password} = req.body;
-        const admin = await Admin.findOne({ UserName: username});
+        const { username, password } = req.body;
+        const admin = await Admin.findOne({ UserName: username });
 
         if (!admin) {
             return res.status(401).json({ msg: "Incorrect user name" });
@@ -26,10 +26,11 @@ router.post('/login', async (req, res) => {
             process.env.JWT_ADMIN_KEY,
             { expiresIn: "1h" }
         );
+        console.log(accessToken);
         res.cookie('token', accessToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production", // Always true in production
-            sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict", 
+            sameSite: process.env.NODE_ENV === "production" ? "None" : "Strict",
             maxAge: 60 * 60 * 1000, // 1 hour
         });
         console.log(`${admin.UserName} login succesfully`);
