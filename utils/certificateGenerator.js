@@ -6,10 +6,16 @@ const PDFDocument = require("pdfkit");
  * Generate a PDF certificate
  * @param {string} name - Recipient name
  * @param {string} competition - Competition name
+ * @param {string} teamName - Team name for filename
  * @param {string} outputPath - Optional custom output path
  * @returns {Promise<string>} - Path to generated PDF file
  */
-function generateCertificate(name, competition, outputPath = null) {
+function generateCertificate(
+  name,
+  competition,
+  teamName = "",
+  outputPath = null
+) {
   return new Promise((resolve, reject) => {
     try {
       // Set dimensions (8in × 6.3in converted to points - 72pts per inch)
@@ -27,10 +33,17 @@ function generateCertificate(name, competition, outputPath = null) {
         },
       });
 
-      // Set output file path
+      // Sanitize name and teamName for filename (replace spaces with hyphens)
+      const sanitizedName = name.replace(/\s+/g, "-");
+      const sanitizedTeam = teamName.replace(/\s+/g, "-");
+
+      // Set output file path with the new naming convention
       const certificateFile =
         outputPath ||
-        path.join(__dirname, `../certificates/certificate-${Date.now()}.pdf`);
+        path.join(
+          __dirname,
+          `../certificates/${sanitizedName}-${sanitizedTeam}-Certificate-DevDay25.pdf`
+        );
 
       // Ensure directory exists
       const dir = path.dirname(certificateFile);
@@ -94,13 +107,14 @@ function generateCertificate(name, competition, outputPath = null) {
  * Generate certificates for multiple team members
  * @param {Array<string>} members - Array of member names
  * @param {string} competition - Competition name
+ * @param {string} teamName - Team name for filenames
  * @returns {Promise<Array<string>>} - Paths to generated PDF files
  */
-async function generateTeamCertificates(members, competition) {
+async function generateTeamCertificates(members, competition, teamName = "") {
   const certificatePaths = [];
 
   for (const member of members) {
-    const path = await generateCertificate(member, competition);
+    const path = await generateCertificate(member, competition, teamName);
     certificatePaths.push(path);
   }
 

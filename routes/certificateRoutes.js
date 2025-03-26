@@ -119,7 +119,8 @@ router.get("/:att_code", async (req, res) => {
     // Generate certificates for all team members
     const certificatePaths = await generateTeamCertificates(
       members,
-      team.Competition
+      team.Competition,
+      team.Team_Name
     );
 
     // prepare certificate data
@@ -136,7 +137,8 @@ router.get("/:att_code", async (req, res) => {
       message: "Certificate generated successfully",
       certificateData,
       downloadUrls: certificatePaths.map(
-        (filePath) => `/download/certificate/${path.basename(filePath)}`
+        (filePath) =>
+          `/api/certificates/download/certificate/${path.basename(filePath)}`
       ),
     });
   } catch (err) {
