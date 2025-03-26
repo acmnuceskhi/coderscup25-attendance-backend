@@ -1,5 +1,11 @@
 const express = require("express");
 // const { DevDayAttendance, Event } = require("../models/Models");
+const {
+  generateCertificate,
+  generateTeamCertificates,
+} = require("../utils/certificateGenerator");
+const path = require("path");
+const fs = require("fs");
 
 const router = express.Router();
 
@@ -94,8 +100,6 @@ router.get("/:att_code", async (req, res) => {
       });
     }
 
-    // certificate generation logic would be implemented here
-
     // collect team member names
     const members = [team.Leader_name];
 
@@ -112,6 +116,12 @@ router.get("/:att_code", async (req, res) => {
       members.push(team.mem4_name);
     }
 
+    // Generate certificates for all team members
+    const certificatePaths = await generateTeamCertificates(
+      members,
+      team.Competition
+    );
+
     // prepare certificate data
     const certificateData = {
       teamName: team.Team_Name,
@@ -119,16 +129,31 @@ router.get("/:att_code", async (req, res) => {
       members: members,
       competition: team.Competition,
       eventDate: event.start_time,
+      certificatePaths: certificatePaths,
     };
 
     return res.json({
       message: "Certificate generated successfully",
       certificateData,
-      // downloadUrl: `/download/certificate/${team.att_code}.pdf`
+      downloadUrls: certificatePaths.map(
+        (filePath) => `/download/certificate/${path.basename(filePath)}`
+      ),
     });
   } catch (err) {
     return res.status(500).json({ message: err.message });
   }
+});
+
+// Add a download endpoint for the generated certificates
+router.get("/download/certificate/:filename", (req, res) => {
+  const { filename } = req.params;
+  const filePath = path.join(__dirname, `../certificates/${filename}`);
+
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).json({ message: "Certificate not found" });
+  }
+
+  res.download(filePath);
 });
 
 module.exports = router;

@@ -1,5 +1,25 @@
 const request = require("supertest");
 const express = require("express");
+const path = require("path");
+
+// Mock the certificate generator functions
+jest.mock("../utils/certificateGenerator", () => ({
+  generateCertificate: jest.fn().mockImplementation((name, competition) => {
+    return Promise.resolve(
+      `d:\\path\\to\\certificates\\${name}-${Date.now()}.pdf`
+    );
+  }),
+  generateTeamCertificates: jest
+    .fn()
+    .mockImplementation((members, competition) => {
+      return Promise.resolve(
+        members.map(
+          (name) => `d:\\path\\to\\certificates\\${name}-${Date.now()}.pdf`
+        )
+      );
+    }),
+}));
+
 const certificateRoutes = require("../routes/certificateRoutes");
 
 const app = express();
@@ -11,6 +31,9 @@ describe("GET /:att_code", () => {
     const response = await request(app).get("/api/certificates/valid_att_code");
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("certificateData");
+    expect(response.body).toHaveProperty("downloadUrls");
+    expect(response.body.message).toBe("Certificate generated successfully");
+
     expect(response.body.certificateData).toMatchObject({
       teamName: "Team Innovators",
       consumerNumber: "789012",
@@ -23,6 +46,19 @@ describe("GET /:att_code", () => {
       ],
       competition: "Speed Debugging",
       eventDate: new Date("2025-03-01T09:00:00Z").toISOString(),
+    });
+
+    // Verify certificate paths and download URLs
+    expect(response.body.certificateData).toHaveProperty("certificatePaths");
+    expect(Array.isArray(response.body.certificateData.certificatePaths)).toBe(
+      true
+    );
+    expect(response.body.certificateData.certificatePaths.length).toBe(5);
+
+    expect(Array.isArray(response.body.downloadUrls)).toBe(true);
+    expect(response.body.downloadUrls.length).toBe(5);
+    response.body.downloadUrls.forEach((url) => {
+      expect(url).toMatch(/^\/download\/certificate\/.+$/);
     });
   });
 
@@ -49,5 +85,30 @@ describe("GET /:att_code", () => {
     expect(response.body.message).toBe(
       "Certificates are only available after the event has ended"
     );
+  });
+
+  it("should return 404 if team is not found", async () => {
+    const response = await request(app).get(
+      "/api/certificates/nonexistent_code"
+    );
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Team not found");
+  });
+});
+
+describe("GET /download/certificate/:filename", () => {
+  it("should handle certificate download requests", async () => {
+    // We can't fully test the download without mocking the fs module,
+    // but we can at least ensure the route exists
+    const fs = require("fs");
+    jest.spyOn(fs, "existsSync").mockReturnValue(false);
+
+    const response = await request(app).get(
+      "/api/certificates/download/certificate/sample.pdf"
+    );
+    expect(response.status).toBe(404);
+    expect(response.body.message).toBe("Certificate not found");
+
+    fs.existsSync.mockRestore();
   });
 });
