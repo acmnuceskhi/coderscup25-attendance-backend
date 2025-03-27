@@ -79,17 +79,6 @@ jest.mock("../utils/certificateGenerator", () => {
           }))
         );
       }),
-    createCertificateStream: jest.fn().mockImplementation((buffer) => {
-      // Use require inside mock implementation to avoid Jest's scope restriction
-      const { Readable } = require("stream");
-      const stream = new Readable();
-      stream.push(buffer);
-      stream.push(null);
-      return stream;
-    }),
-    // Keep legacy mocks for backward compatibility
-    generateCertificate: jest.fn(),
-    generateTeamCertificates: jest.fn(),
   };
 });
 

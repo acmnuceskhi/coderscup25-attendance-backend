@@ -1,7 +1,6 @@
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
-const { Readable } = require("stream");
 
 // log file setup
 const logFilePath = path.join(__dirname, "../logs/certificateGenerator.log");
@@ -101,18 +100,6 @@ function generateCertificateBuffer(name, competition, teamName = "") {
 }
 
 /**
- * Create a readable stream from a certificate buffer
- * @param {Buffer} buffer - Certificate PDF buffer
- * @returns {Readable} - Readable stream
- */
-function createCertificateStream(buffer) {
-  const stream = new Readable();
-  stream.push(buffer);
-  stream.push(null);
-  return stream;
-}
-
-/**
  * Generate certificates for multiple team members
  * @param {Array<string>} members - Array of member names
  * @param {string} competition - Competition name
@@ -152,5 +139,4 @@ async function generateTeamCertificateBuffers(
 module.exports = {
   generateCertificateBuffer,
   generateTeamCertificateBuffers,
-  createCertificateStream,
 };

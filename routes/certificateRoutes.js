@@ -5,7 +5,6 @@ const crypto = require("crypto");
 const { DevDayAttendance, Event } = require("../models/Models");
 const {
   generateTeamCertificateBuffers,
-  createCertificateStream,
 } = require("../utils/certificateGenerator");
 
 const router = express.Router();
@@ -59,8 +58,8 @@ router.post("/", async (req, res) => {
     logMessage(`fetching team data for attendance code: ${att_code}`);
     const team = await DevDayAttendance.findOne({ att_code: att_code });
     if (!team) {
-      logMessage(`ERROR: team not found for attendance code: ${att_code}`);
-      return res.status(404).json({ message: "team not found" });
+      logMessage(`ERROR: Team not found for attendance code: ${att_code}`);
+      return res.status(404).json({ message: "Team not found" });
     }
 
     // verify attendance status
@@ -142,7 +141,7 @@ router.post("/", async (req, res) => {
   }
 });
 
-// stream certificate endpoint
+// download certificate endpoint (updated to use direct buffer sending)
 router.get("/download/:token", (req, res) => {
   const { token } = req.params;
   logMessage(`Received certificate download request for token: ${token}`);
@@ -155,7 +154,7 @@ router.get("/download/:token", (req, res) => {
   }
 
   const certificate = certificateStore.get(token);
-  logMessage(`Streaming certificate for token: ${token}`);
+  logMessage(`Sending certificate for token: ${token}`);
 
   // set appropriate headers
   res.setHeader("Content-Type", certificate.contentType);
@@ -165,9 +164,8 @@ router.get("/download/:token", (req, res) => {
   );
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
 
-  // stream the certificate to the client
-  const stream = createCertificateStream(certificate.buffer);
-  stream.pipe(res);
+  // directly send the buffer to the client
+  res.end(certificate.buffer);
 });
 
 module.exports = router;
