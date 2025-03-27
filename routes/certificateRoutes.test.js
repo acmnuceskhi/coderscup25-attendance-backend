@@ -99,9 +99,11 @@ const app = express();
 app.use(express.json());
 app.use("/api/certificates", certificateRoutes);
 
-describe("GET /:att_code", () => {
+describe("POST /certificate", () => {
   it("should return certificate data if attendance is marked", async () => {
-    const response = await request(app).get("/api/certificates/AUTOMATION25");
+    const response = await request(app)
+      .post("/api/certificates")
+      .send({ att_code: "AUTOMATION25" });
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("certificateData");
     expect(response.body).toHaveProperty("downloadUrls");
@@ -118,7 +120,7 @@ describe("GET /:att_code", () => {
         "Kirish Kumar",
       ],
       competition: "SQL Saga",
-      eventDate: new Date("2023-04-17T05:00:00.000+00:00").toISOString(), // Changed from 2025 to 2023
+      eventDate: new Date("2023-04-17T05:00:00.000+00:00").toISOString(),
     });
 
     // Verify certificate paths and download URLs
@@ -138,14 +140,15 @@ describe("GET /:att_code", () => {
   });
 
   it("should return 400 if attendance code is missing", async () => {
-    const response = await request(app).get("/api/certificates/");
-    expect(response.status).toBe(404); // 404 because the route is not matched
+    const response = await request(app).post("/api/certificates").send({});
+    expect(response.status).toBe(400);
+    expect(response.body.message).toBe("Attendance code is required");
   });
 
   it("should return 400 if attendance was not marked", async () => {
-    const response = await request(app).get(
-      "/api/certificates/invalid_att_code"
-    );
+    const response = await request(app)
+      .post("/api/certificates")
+      .send({ att_code: "invalid_att_code" });
     expect(response.status).toBe(400);
     expect(response.body.message).toBe(
       "Certificate unavailable: Attendance was not marked"
@@ -153,9 +156,9 @@ describe("GET /:att_code", () => {
   });
 
   it("should return 400 if event has not concluded", async () => {
-    const response = await request(app).get(
-      "/api/certificates/event_not_concluded"
-    );
+    const response = await request(app)
+      .post("/api/certificates")
+      .send({ att_code: "event_not_concluded" });
     expect(response.status).toBe(400);
     expect(response.body.message).toBe(
       "Certificates are only available after the event has ended"
@@ -163,9 +166,9 @@ describe("GET /:att_code", () => {
   });
 
   it("should return 404 if team is not found", async () => {
-    const response = await request(app).get(
-      "/api/certificates/nonexistent_code"
-    );
+    const response = await request(app)
+      .post("/api/certificates")
+      .send({ att_code: "nonexistent_code" });
     expect(response.status).toBe(404);
     expect(response.body.message).toBe("Team not found");
   });

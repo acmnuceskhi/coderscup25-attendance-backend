@@ -10,9 +10,9 @@ const fs = require("fs");
 const router = express.Router();
 
 //Certificate download {code} --> certificate generate and return
-router.get("/:att_code", async (req, res) => {
+router.post("/", async (req, res) => {
   try {
-    const { att_code } = req.params;
+    const { att_code } = req.body;
 
     if (!att_code) {
       return res.status(400).json({ message: "Attendance code is required" });
