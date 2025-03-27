@@ -59,7 +59,7 @@ router.post('/mark', async (req, res) => {
             return res.status(500).json({ message: err.message });
         }
     } else {
-        return res.status(400).json({ message: "User is out of allowed range. Attendance not marked." });
+        return res.status(400).json({ message: "Out of allowed range! Attendance cannot be marked." });
     }
 });
 
