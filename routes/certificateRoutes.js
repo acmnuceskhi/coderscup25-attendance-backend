@@ -1,5 +1,5 @@
 const express = require("express");
-// const { DevDayAttendance, Event } = require("../models/Models");
+const { DevDayAttendance, Event } = require("../models/Models");
 const {
   generateCertificate,
   generateTeamCertificates,
@@ -19,55 +19,55 @@ router.get("/:att_code", async (req, res) => {
     }
 
     // retrieve team data
-    // const team = await DevDayAttendance.findOne({ att_code: att_code });
-    // if (!team) {
-    //   return res.status(404).json({ message: "Team not found" });
-    // }
-
-    // hardcoded team data for testing
-    let team;
-    if (att_code === "valid_att_code") {
-      team = {
-        att_code: att_code,
-        Leader_name: "Asfand Khanzada",
-        mem1_name: "Raahim Irfan",
-        mem2_name: "Abdullah Azhar Khan",
-        mem3_name: "Sarim Ahmed",
-        mem4_name: "Kirish Kumar",
-        attendance: true,
-        Team_Name: "Team Innovators",
-        consumerNumber: "789012",
-        Competition: "Speed Debugging",
-      };
-    } else if (att_code === "invalid_att_code") {
-      team = {
-        att_code: att_code,
-        Leader_name: "Asfand Khanzada",
-        mem1_name: "Raahim Irfan",
-        mem2_name: "Abdullah Azhar Khan",
-        mem3_name: "Sarim Ahmed",
-        mem4_name: "Kirish Kumar",
-        attendance: false,
-        Team_Name: "Team Innovators",
-        consumerNumber: "789012",
-        Competition: "Speed Debugging",
-      };
-    } else if (att_code === "event_not_concluded") {
-      team = {
-        att_code: att_code,
-        Leader_name: "Asfand Khanzada",
-        mem1_name: "Raahim Irfan",
-        mem2_name: "Abdullah Azhar Khan",
-        mem3_name: "Sarim Ahmed",
-        mem4_name: "Kirish Kumar",
-        attendance: true,
-        Team_Name: "Team Innovators",
-        consumerNumber: "789012",
-        Competition: "Speed Debugging",
-      };
-    } else {
+    const team = await DevDayAttendance.findOne({ att_code: att_code });
+    if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
+
+    // // hardcoded team data for testing
+    // let team;
+    // if (att_code === "valid_att_code") {
+    //   team = {
+    //     att_code: att_code,
+    //     Leader_name: "Asfand Khanzada",
+    //     mem1_name: "Raahim Irfan",
+    //     mem2_name: "Abdullah Azhar Khan",
+    //     mem3_name: "Sarim Ahmed",
+    //     mem4_name: "Kirish Kumar",
+    //     attendance: true,
+    //     Team_Name: "Team Innovators",
+    //     consumerNumber: "789012",
+    //     Competition: "Speed Debugging",
+    //   };
+    // } else if (att_code === "invalid_att_code") {
+    //   team = {
+    //     att_code: att_code,
+    //     Leader_name: "Asfand Khanzada",
+    //     mem1_name: "Raahim Irfan",
+    //     mem2_name: "Abdullah Azhar Khan",
+    //     mem3_name: "Sarim Ahmed",
+    //     mem4_name: "Kirish Kumar",
+    //     attendance: false,
+    //     Team_Name: "Team Innovators",
+    //     consumerNumber: "789012",
+    //     Competition: "Speed Debugging",
+    //   };
+    // } else if (att_code === "event_not_concluded") {
+    //   team = {
+    //     att_code: att_code,
+    //     Leader_name: "Asfand Khanzada",
+    //     mem1_name: "Raahim Irfan",
+    //     mem2_name: "Abdullah Azhar Khan",
+    //     mem3_name: "Sarim Ahmed",
+    //     mem4_name: "Kirish Kumar",
+    //     attendance: true,
+    //     Team_Name: "Team Innovators",
+    //     consumerNumber: "789012",
+    //     Competition: "Speed Debugging",
+    //   };
+    // } else {
+    //   return res.status(404).json({ message: "Team not found" });
+    // }
 
     // verify attendance status
     if (!team.attendance) {
@@ -77,20 +77,20 @@ router.get("/:att_code", async (req, res) => {
     }
 
     // retrieve event details
-    // const event = await Event.findOne({ competitionName: team.Competition });
-    // if (!event) {
-    //   return res.status(404).json({ message: "Event not found" });
-    // }
+    const event = await Event.findOne({ competitionName: team.Competition });
+    if (!event) {
+      return res.status(404).json({ message: "Event not found" });
+    }
 
-    // hardcoded event data for testing
-    const event = {
-      competitionName: team.Competition,
-      start_time: new Date("2025-03-01T09:00:00Z"),
-      end_time:
-        att_code === "event_not_concluded"
-          ? new Date("2025-03-30T17:00:00Z")
-          : new Date("2025-03-01T17:00:00Z"),
-    };
+    // // hardcoded event data for testing
+    // const event = {
+    //   competitionName: team.Competition,
+    //   start_time: new Date("2025-03-01T09:00:00Z"),
+    //   end_time:
+    //     att_code === "event_not_concluded"
+    //       ? new Date("2025-03-30T17:00:00Z")
+    //       : new Date("2025-03-01T17:00:00Z"),
+    // };
 
     // verify event has concluded
     const now = new Date();
