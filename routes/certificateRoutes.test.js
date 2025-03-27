@@ -1,6 +1,5 @@
 const request = require("supertest");
 const express = require("express");
-const path = require("path");
 
 // Mock the models
 jest.mock("../models/Models", () => ({
@@ -26,29 +25,28 @@ jest.mock("../models/Models", () => ({
         });
       } else if (att_code === "invalid_att_code") {
         return Promise.resolve({
-          // Same as above but with attendance: false
           attendance: false,
         });
       } else if (att_code === "event_not_concluded") {
         return Promise.resolve({
-          // Same team data but with a future event
           attendance: true,
           Competition: "Future SQL Saga",
+          Team_Name: "Team Future",
+          Leader_name: "Future Leader",
+          consumerNumber: "CN-003",
         });
       }
       return Promise.resolve(null);
     }),
   },
-  // In the Event mock for "SQL Saga", change the end_time to a past date:
-
   Event: {
     findOne: jest.fn().mockImplementation(({ competitionName }) => {
       if (competitionName === "SQL Saga") {
         return Promise.resolve({
           competitionName: "SQL Saga",
-          start_time: new Date("2023-04-17T05:00:00.000+00:00"), // Changed to 2023
-          end_time: new Date("2023-04-17T07:00:00.000+00:00"), // Changed to 2023
-          updatedAt: new Date("2023-03-25T12:32:56.604+00:00"), // Changed to 2023
+          start_time: new Date("2023-04-17T05:00:00.000+00:00"),
+          end_time: new Date("2023-04-17T07:00:00.000+00:00"),
+          updatedAt: new Date("2023-03-25T12:32:56.604+00:00"),
         });
       } else if (competitionName === "Future SQL Saga") {
         // Keep this one in the future
@@ -67,31 +65,33 @@ jest.mock("../models/Models", () => ({
 }));
 
 // Mock the certificate generator functions
-jest.mock("../utils/certificateGenerator", () => ({
-  generateCertificate: jest
-    .fn()
-    .mockImplementation((name, competition, teamName = "") => {
-      const sanitizedName = name.replace(/\s+/g, "-");
-      const sanitizedTeam = teamName.replace(/\s+/g, "-");
-      return Promise.resolve(
-        `d:\\path\\to\\certificates\\${sanitizedName}-${sanitizedTeam}.pdf`
-      );
+jest.mock("../utils/certificateGenerator", () => {
+  return {
+    generateTeamCertificateBuffers: jest
+      .fn()
+      .mockImplementation((members, competition, teamName = "") => {
+        return Promise.resolve(
+          members.map((name) => ({
+            name: name,
+            buffer: Buffer.from(
+              `Mock certificate for ${name} - ${competition} - ${teamName}`
+            ),
+          }))
+        );
+      }),
+    createCertificateStream: jest.fn().mockImplementation((buffer) => {
+      // Use require inside mock implementation to avoid Jest's scope restriction
+      const { Readable } = require("stream");
+      const stream = new Readable();
+      stream.push(buffer);
+      stream.push(null);
+      return stream;
     }),
-  generateTeamCertificates: jest
-    .fn()
-    .mockImplementation((members, competition, teamName = "") => {
-      const sanitizedTeam = teamName.replace(/\s+/g, "-");
-      return Promise.resolve(
-        members.map(
-          (name) =>
-            `d:\\path\\to\\certificates\\${name.replace(
-              /\s+/g,
-              "-"
-            )}-${sanitizedTeam}.pdf`
-        )
-      );
-    }),
-}));
+    // Keep legacy mocks for backward compatibility
+    generateCertificate: jest.fn(),
+    generateTeamCertificates: jest.fn(),
+  };
+});
 
 const certificateRoutes = require("../routes/certificateRoutes");
 
@@ -99,14 +99,20 @@ const app = express();
 app.use(express.json());
 app.use("/api/certificates", certificateRoutes);
 
-describe("POST /certificate", () => {
+// Clean up the interval after all tests
+afterAll(() => {
+  clearInterval(certificateRoutes.cleanupInterval);
+});
+
+describe("POST /api/certificates", () => {
   it("should return certificate data if attendance is marked", async () => {
     const response = await request(app)
       .post("/api/certificates")
       .send({ att_code: "AUTOMATION25" });
+
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("certificateData");
-    expect(response.body).toHaveProperty("downloadUrls");
+    expect(response.body).toHaveProperty("downloadTokens");
     expect(response.body.message).toBe("Certificate generated successfully");
 
     expect(response.body.certificateData).toMatchObject({
@@ -123,18 +129,16 @@ describe("POST /certificate", () => {
       eventDate: new Date("2023-04-17T05:00:00.000+00:00").toISOString(),
     });
 
-    // Verify certificate paths and download URLs
-    expect(response.body.certificateData).toHaveProperty("certificatePaths");
-    expect(Array.isArray(response.body.certificateData.certificatePaths)).toBe(
-      true
-    );
-    expect(response.body.certificateData.certificatePaths.length).toBe(5);
+    // Verify download tokens format
+    expect(Array.isArray(response.body.downloadTokens)).toBe(true);
+    expect(response.body.downloadTokens.length).toBe(5);
 
-    expect(Array.isArray(response.body.downloadUrls)).toBe(true);
-    expect(response.body.downloadUrls.length).toBe(5);
-    response.body.downloadUrls.forEach((url) => {
-      expect(url).toMatch(
-        /^\/api\/certificates\/download\/certificate\/.+-Team-Automation\.pdf$/
+    response.body.downloadTokens.forEach((token, index) => {
+      expect(token).toHaveProperty("memberName");
+      expect(token).toHaveProperty("memberIndex");
+      expect(token).toHaveProperty("downloadUrl");
+      expect(token.downloadUrl).toMatch(
+        /^\/api\/certificates\/download\/[a-f0-9]{32}$/
       );
     });
   });
@@ -174,17 +178,35 @@ describe("POST /certificate", () => {
   });
 });
 
-describe("GET /download/certificate/:filename", () => {
-  it("should handle certificate download requests", async () => {
-    const fs = require("fs");
-    jest.spyOn(fs, "existsSync").mockReturnValue(false);
-
+describe("GET /api/certificates/download/:token", () => {
+  it("should return 404 if certificate token is not found", async () => {
     const response = await request(app).get(
-      "/api/certificates/download/certificate/Asfand-Khanzada-The-Innovators.pdf"
+      "/api/certificates/download/nonexistent_token"
     );
     expect(response.status).toBe(404);
-    expect(response.body.message).toBe("Certificate not found");
+    expect(response.body.message).toBe("Certificate not found or expired");
+  });
 
-    fs.existsSync.mockRestore();
+  // Add test for successful certificate download
+  it("should download certificate with valid token", async () => {
+    // We need to first generate a valid token by calling the certificate generation endpoint
+    const genResponse = await request(app)
+      .post("/api/certificates")
+      .send({ att_code: "AUTOMATION25" });
+
+    // Extract a token URL from the response
+    const downloadUrl = genResponse.body.downloadTokens[0].downloadUrl;
+    const token = downloadUrl.split("/").pop();
+
+    // Now request the download with the token
+    const downloadResponse = await request(app).get(
+      `/api/certificates/download/${token}`
+    );
+
+    expect(downloadResponse.status).toBe(200);
+    expect(downloadResponse.header["content-type"]).toBe("application/pdf");
+    expect(downloadResponse.header["content-disposition"]).toMatch(
+      /^attachment; filename=".*\.pdf"$/
+    );
   });
 });

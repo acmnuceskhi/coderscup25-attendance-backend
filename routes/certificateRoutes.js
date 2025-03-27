@@ -1,15 +1,33 @@
 const express = require("express");
+const crypto = require("crypto");
 const { DevDayAttendance, Event } = require("../models/Models");
 const {
-  generateCertificate,
-  generateTeamCertificates,
+  generateTeamCertificateBuffers,
+  createCertificateStream,
 } = require("../utils/certificateGenerator");
-const path = require("path");
-const fs = require("fs");
 
 const router = express.Router();
 
-//Certificate download {code} --> certificate generate and return
+// In-memory storage for certificates with TTL (5 minutes)
+const certificateStore = new Map();
+const CERTIFICATE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+// Clean expired certificates periodically (every minute)
+const cleanupInterval = setInterval(() => {
+  const now = Date.now();
+  for (const [token, cert] of certificateStore.entries()) {
+    if (now > cert.expiry) {
+      certificateStore.delete(token);
+    }
+  }
+}, 60000);
+
+// Generate secure token for certificate access
+function generateSecureToken() {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+// Certificate generation endpoint
 router.post("/", async (req, res) => {
   try {
     const { att_code } = req.body;
@@ -18,81 +36,26 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Attendance code is required" });
     }
 
-    // retrieve team data
+    // Retrieve team data
     const team = await DevDayAttendance.findOne({ att_code: att_code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    // // hardcoded team data for testing
-    // let team;
-    // if (att_code === "valid_att_code") {
-    //   team = {
-    //     att_code: att_code,
-    //     Leader_name: "Asfand Khanzada",
-    //     mem1_name: "Raahim Irfan",
-    //     mem2_name: "Abdullah Azhar Khan",
-    //     mem3_name: "Sarim Ahmed",
-    //     mem4_name: "Kirish Kumar",
-    //     attendance: true,
-    //     Team_Name: "Team Innovators",
-    //     consumerNumber: "789012",
-    //     Competition: "Speed Debugging",
-    //   };
-    // } else if (att_code === "invalid_att_code") {
-    //   team = {
-    //     att_code: att_code,
-    //     Leader_name: "Asfand Khanzada",
-    //     mem1_name: "Raahim Irfan",
-    //     mem2_name: "Abdullah Azhar Khan",
-    //     mem3_name: "Sarim Ahmed",
-    //     mem4_name: "Kirish Kumar",
-    //     attendance: false,
-    //     Team_Name: "Team Innovators",
-    //     consumerNumber: "789012",
-    //     Competition: "Speed Debugging",
-    //   };
-    // } else if (att_code === "event_not_concluded") {
-    //   team = {
-    //     att_code: att_code,
-    //     Leader_name: "Asfand Khanzada",
-    //     mem1_name: "Raahim Irfan",
-    //     mem2_name: "Abdullah Azhar Khan",
-    //     mem3_name: "Sarim Ahmed",
-    //     mem4_name: "Kirish Kumar",
-    //     attendance: true,
-    //     Team_Name: "Team Innovators",
-    //     consumerNumber: "789012",
-    //     Competition: "Speed Debugging",
-    //   };
-    // } else {
-    //   return res.status(404).json({ message: "Team not found" });
-    // }
-
-    // verify attendance status
+    // Verify attendance status
     if (!team.attendance) {
       return res.status(400).json({
         message: "Certificate unavailable: Attendance was not marked",
       });
     }
 
-    // retrieve event details
+    // Retrieve event details
     const event = await Event.findOne({ competitionName: team.Competition });
     if (!event) {
       return res.status(404).json({ message: "Event not found" });
     }
 
-    // // hardcoded event data for testing
-    // const event = {
-    //   competitionName: team.Competition,
-    //   start_time: new Date("2025-03-01T09:00:00Z"),
-    //   end_time:
-    //     att_code === "event_not_concluded"
-    //       ? new Date("2025-03-30T17:00:00Z")
-    //       : new Date("2025-03-01T17:00:00Z"),
-    // };
-
-    // verify event has concluded
+    // Verify event has concluded
     const now = new Date();
     if (now <= event.end_time) {
       return res.status(400).json({
@@ -100,62 +63,85 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // collect team member names
+    // Collect team member names
     const members = [team.Leader_name];
+    if (team.mem1_name) members.push(team.mem1_name);
+    if (team.mem2_name) members.push(team.mem2_name);
+    if (team.mem3_name) members.push(team.mem3_name);
+    if (team.mem4_name) members.push(team.mem4_name);
 
-    if (team.mem1_name) {
-      members.push(team.mem1_name);
-    }
-    if (team.mem2_name) {
-      members.push(team.mem2_name);
-    }
-    if (team.mem3_name) {
-      members.push(team.mem3_name);
-    }
-    if (team.mem4_name) {
-      members.push(team.mem4_name);
-    }
-
-    // Generate certificates for all team members
-    const certificatePaths = await generateTeamCertificates(
+    // Generate certificates in memory
+    const certificates = await generateTeamCertificateBuffers(
       members,
       team.Competition,
       team.Team_Name
     );
 
-    // prepare certificate data
+    // Store certificates with tokens and prepare response
+    const downloadTokens = certificates.map((cert, index) => {
+      const token = generateSecureToken();
+      const expiry = Date.now() + CERTIFICATE_TTL;
+
+      certificateStore.set(token, {
+        buffer: cert.buffer,
+        name: cert.name,
+        contentType: "application/pdf",
+        filename: `${cert.name.replace(/\s+/g, "-")}-Certificate.pdf`,
+        expiry: expiry,
+      });
+
+      return {
+        memberName: cert.name,
+        memberIndex: index,
+        downloadUrl: `/api/certificates/download/${token}`,
+      };
+    });
+
+    // Prepare certificate data for response
     const certificateData = {
       teamName: team.Team_Name,
       consumerNumber: team.consumerNumber,
       members: members,
       competition: team.Competition,
       eventDate: event.start_time,
-      certificatePaths: certificatePaths,
     };
 
     return res.json({
       message: "Certificate generated successfully",
       certificateData,
-      downloadUrls: certificatePaths.map(
-        (filePath) =>
-          `/api/certificates/download/certificate/${path.basename(filePath)}`
-      ),
+      downloadTokens,
     });
   } catch (err) {
-    return res.status(500).json({ message: err.message });
+    console.error("Certificate generation error:", err);
+    return res.status(500).json({ message: "Error generating certificate" });
   }
 });
 
-// Add a download endpoint for the generated certificates
-router.get("/download/certificate/:filename", (req, res) => {
-  const { filename } = req.params;
-  const filePath = path.join(__dirname, `../certificates/${filename}`);
+// Stream certificate endpoint
+router.get("/download/:token", (req, res) => {
+  const { token } = req.params;
 
-  if (!fs.existsSync(filePath)) {
-    return res.status(404).json({ message: "Certificate not found" });
+  if (!certificateStore.has(token)) {
+    return res
+      .status(404)
+      .json({ message: "Certificate not found or expired" });
   }
 
-  res.download(filePath);
+  const certificate = certificateStore.get(token);
+
+  // Set appropriate headers
+  res.setHeader("Content-Type", certificate.contentType);
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="${certificate.filename}"`
+  );
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+
+  // Stream the certificate to the client
+  const stream = createCertificateStream(certificate.buffer);
+  stream.pipe(res);
 });
 
 module.exports = router;
+// Export the interval ID for testing purposes
+module.exports.cleanupInterval = cleanupInterval;
