@@ -1,6 +1,23 @@
+const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
 const { Readable } = require("stream");
+
+// log file setup
+const logFilePath = path.join(__dirname, "../logs/certificateGenerator.log");
+if (!fs.existsSync(path.dirname(logFilePath))) {
+  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
+}
+if (!fs.existsSync(logFilePath)) {
+  fs.writeFileSync(logFilePath, ""); // create an empty log file if it doesn't exist
+}
+
+function logMessage(message) {
+  const timestamp = new Date().toISOString();
+  const formattedMessage = `[${timestamp}] ${message}`;
+  console.log(formattedMessage);
+  fs.appendFileSync(logFilePath, formattedMessage + "\n");
+}
 
 /**
  * Generate a PDF certificate in memory
@@ -12,11 +29,12 @@ const { Readable } = require("stream");
 function generateCertificateBuffer(name, competition, teamName = "") {
   return new Promise((resolve, reject) => {
     try {
-      // Set dimensions (8in × 6.3in converted to points - 72pts per inch)
+      logMessage(`Starting certificate generation for: ${name}`);
+      // set dimensions (8in × 6.3in converted to points - 72pts per inch)
       const width = 8 * 72; // 576 points
       const height = 6.3 * 72; // 453.6 points
 
-      // Create PDF document
+      // create PDF document
       const doc = new PDFDocument({
         size: [width, height],
         margin: 0,
@@ -29,28 +47,34 @@ function generateCertificateBuffer(name, competition, teamName = "") {
         bufferPages: true,
       });
 
-      // Create buffer chunks to store PDF data
+      // create buffer chunks to store PDF data
       const chunks = [];
       doc.on("data", (chunk) => chunks.push(chunk));
-      doc.on("end", () => resolve(Buffer.concat(chunks)));
-      doc.on("error", reject);
+      doc.on("end", () => {
+        logMessage(`Certificate generated successfully for: ${name}`);
+        resolve(Buffer.concat(chunks));
+      });
+      doc.on("error", (err) => {
+        logMessage(`Error generating certificate for ${name}: ${err.message}`);
+        reject(err);
+      });
 
-      // Add background image
+      // add background image
       const imagePath = path.join(__dirname, "../assets/certificateDesign.jpg");
       doc.image(imagePath, 0, 0, { width, height });
 
-      // Calculate font size based on competition length
+      // calculate font size based on competition length
       let fontSize = 26.64; // 0.37in in points
       if (competition.length > 19) {
         fontSize = 23.76; // 0.33in in points
       }
 
-      // Register fonts
+      // register fonts
       doc.font(
         path.join(__dirname, "../assets/fonts/PlayfairDisplay-Italic.ttf")
       );
 
-      // Position for recipient name
+      // position for recipient name
       doc
         .fontSize(26.64)
         .fillColor("rgba(0, 0, 0, 0.863)")
@@ -59,15 +83,18 @@ function generateCertificateBuffer(name, competition, teamName = "") {
           align: "center",
         });
 
-      // Position for competition name
+      // position for competition name
       doc.fontSize(fontSize).text(competition, 4 * 72, 3.3 * 72, {
         width: 4.1 * 72,
         align: "center",
       });
 
-      // Finalize PDF
+      // finalize PDF
       doc.end();
     } catch (err) {
+      logMessage(
+        `Unexpected error during certificate generation: ${err.message}`
+      );
       reject(err);
     }
   });
@@ -97,79 +124,33 @@ async function generateTeamCertificateBuffers(
   competition,
   teamName = ""
 ) {
+  logMessage(`Generating certificates for team: ${teamName}`);
   const certificates = [];
 
   for (const member of members) {
-    const buffer = await generateCertificateBuffer(
-      member,
-      competition,
-      teamName
-    );
-    certificates.push({
-      name: member,
-      buffer: buffer,
-    });
+    try {
+      const buffer = await generateCertificateBuffer(
+        member,
+        competition,
+        teamName
+      );
+      certificates.push({
+        name: member,
+        buffer: buffer,
+      });
+    } catch (err) {
+      logMessage(
+        `Failed to generate certificate for ${member}: ${err.message}`
+      );
+    }
   }
 
+  logMessage(`Completed certificate generation for team: ${teamName}`);
   return certificates;
-}
-
-// Legacy function for backward compatibility
-function generateCertificate(
-  name,
-  competition,
-  teamName = "",
-  outputPath = null
-) {
-  console.warn("Warning: Using deprecated file-based certificate generation");
-  const fs = require("fs");
-  return new Promise((resolve, reject) => {
-    generateCertificateBuffer(name, competition, teamName)
-      .then((buffer) => {
-        const sanitizedName = name.replace(/\s+/g, "-");
-        const sanitizedTeam = teamName.replace(/\s+/g, "-");
-        const certificateFile =
-          outputPath ||
-          path.join(
-            __dirname,
-            `../certificates/${sanitizedName}-${sanitizedTeam}-Certificate-DevDay25.pdf`
-          );
-
-        // Ensure directory exists
-        const dir = path.dirname(certificateFile);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-
-        fs.writeFile(certificateFile, buffer, (err) => {
-          if (err) reject(err);
-          else resolve(certificateFile);
-        });
-      })
-      .catch(reject);
-  });
-}
-
-// Legacy function for backward compatibility
-async function generateTeamCertificates(members, competition, teamName = "") {
-  console.warn(
-    "Warning: Using deprecated file-based team certificate generation"
-  );
-  const certificatePaths = [];
-
-  for (const member of members) {
-    const path = await generateCertificate(member, competition, teamName);
-    certificatePaths.push(path);
-  }
-
-  return certificatePaths;
 }
 
 module.exports = {
   generateCertificateBuffer,
   generateTeamCertificateBuffers,
   createCertificateStream,
-  // Legacy exports
-  generateCertificate,
-  generateTeamCertificates,
 };
