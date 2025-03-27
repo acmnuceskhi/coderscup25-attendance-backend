@@ -4,17 +4,26 @@ const path = require("path");
 
 // Mock the certificate generator functions
 jest.mock("../utils/certificateGenerator", () => ({
-  generateCertificate: jest.fn().mockImplementation((name, competition) => {
-    return Promise.resolve(
-      `d:\\path\\to\\certificates\\${name}-${Date.now()}.pdf`
-    );
-  }),
+  generateCertificate: jest
+    .fn()
+    .mockImplementation((name, competition, teamName = "") => {
+      const sanitizedName = name.replace(/\s+/g, "-");
+      const sanitizedTeam = teamName.replace(/\s+/g, "-");
+      return Promise.resolve(
+        `d:\\path\\to\\certificates\\${sanitizedName}-${sanitizedTeam}-Certificate-DevDay25.pdf`
+      );
+    }),
   generateTeamCertificates: jest
     .fn()
-    .mockImplementation((members, competition) => {
+    .mockImplementation((members, competition, teamName = "") => {
+      const sanitizedTeam = teamName.replace(/\s+/g, "-");
       return Promise.resolve(
         members.map(
-          (name) => `d:\\path\\to\\certificates\\${name}-${Date.now()}.pdf`
+          (name) =>
+            `d:\\path\\to\\certificates\\${name.replace(
+              /\s+/g,
+              "-"
+            )}-${sanitizedTeam}-Certificate-DevDay25.pdf`
         )
       );
     }),
@@ -58,7 +67,9 @@ describe("GET /:att_code", () => {
     expect(Array.isArray(response.body.downloadUrls)).toBe(true);
     expect(response.body.downloadUrls.length).toBe(5);
     response.body.downloadUrls.forEach((url) => {
-      expect(url).toMatch(/^\/download\/certificate\/.+$/);
+      expect(url).toMatch(
+        /^\/api\/certificates\/download\/certificate\/.+-Team-Innovators-Certificate-DevDay25\.pdf$/
+      );
     });
   });
 
@@ -104,7 +115,7 @@ describe("GET /download/certificate/:filename", () => {
     jest.spyOn(fs, "existsSync").mockReturnValue(false);
 
     const response = await request(app).get(
-      "/api/certificates/download/certificate/sample.pdf"
+      "/api/certificates/download/certificate/Asfand-Khanzada-Team-Innovators-Certificate-DevDay25.pdf"
     );
     expect(response.status).toBe(404);
     expect(response.body.message).toBe("Certificate not found");
