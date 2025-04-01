@@ -1,22 +1,7 @@
 const fs = require("fs");
 const path = require("path");
 const PDFDocument = require("pdfkit");
-
-// log file setup
-const logFilePath = path.join(__dirname, "../logs/certificateGenerator.log");
-if (!fs.existsSync(path.dirname(logFilePath))) {
-  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-}
-if (!fs.existsSync(logFilePath)) {
-  fs.writeFileSync(logFilePath, ""); // create an empty log file if it doesn't exist
-}
-
-function logMessage(message) {
-  const timestamp = new Date().toISOString();
-  const formattedMessage = `[${timestamp}] ${message}`;
-  console.log(formattedMessage);
-  fs.appendFileSync(logFilePath, formattedMessage + "\n");
-}
+const logger = require("./logger")("CertGenerator");
 
 /**
  * Generate a PDF certificate in memory
@@ -28,7 +13,7 @@ function logMessage(message) {
 function generateCertificateBuffer(name, competition, teamName = "") {
   return new Promise((resolve, reject) => {
     try {
-      logMessage(`Starting certificate generation for: ${name}`);
+      logger.info(`Processing certificate for ${logger.val(name)}`);
       // set dimensions (8in × 6.3in converted to points - 72pts per inch)
       const width = 8 * 72; // 576 points
       const height = 6.3 * 72; // 453.6 points
@@ -50,11 +35,13 @@ function generateCertificateBuffer(name, competition, teamName = "") {
       const chunks = [];
       doc.on("data", (chunk) => chunks.push(chunk));
       doc.on("end", () => {
-        logMessage(`Certificate generated successfully for: ${name}`);
+        logger.debug(`Certificate PDF created for ${logger.val(name)}`);
         resolve(Buffer.concat(chunks));
       });
       doc.on("error", (err) => {
-        logMessage(`Error generating certificate for ${name}: ${err.message}`);
+        logger.error(
+          `PDF creation failed for ${logger.val(name)}: ${err.message}`
+        );
         reject(err);
       });
 
@@ -91,9 +78,7 @@ function generateCertificateBuffer(name, competition, teamName = "") {
       // finalize PDF
       doc.end();
     } catch (err) {
-      logMessage(
-        `Unexpected error during certificate generation: ${err.message}`
-      );
+      logger.error(`Unexpected error: ${err.message}`);
       reject(err);
     }
   });
@@ -111,7 +96,11 @@ async function generateTeamCertificateBuffers(
   competition,
   teamName = ""
 ) {
-  logMessage(`Generating certificates for team: ${teamName}`);
+  logger.info(
+    `Processing ${logger.val(teamName)} with ${logger.val(
+      members.length
+    )} members`
+  );
   const certificates = [];
 
   for (const member of members) {
@@ -126,13 +115,17 @@ async function generateTeamCertificateBuffers(
         buffer: buffer,
       });
     } catch (err) {
-      logMessage(
-        `Failed to generate certificate for ${member}: ${err.message}`
+      logger.error(
+        `Failed certificate for ${logger.val(member)}: ${err.message}`
       );
     }
   }
 
-  logMessage(`Completed certificate generation for team: ${teamName}`);
+  logger.info(
+    `Completed PDF generation for ${logger.val(
+      certificates.length
+    )} certificates`
+  );
   return certificates;
 }
 

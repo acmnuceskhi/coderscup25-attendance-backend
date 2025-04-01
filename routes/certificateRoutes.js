@@ -6,38 +6,30 @@ const { DevDayAttendance, Event } = require("../models/Models");
 const {
   generateTeamCertificateBuffers,
 } = require("../utils/certificateGenerator");
+const logger = require("../utils/logger")("CertRoutes");
 
 const router = express.Router();
 
-// log file setup
-const logFilePath = path.join(__dirname, "../logs/certificateRoutes.log");
-if (!fs.existsSync(path.dirname(logFilePath))) {
-  fs.mkdirSync(path.dirname(logFilePath), { recursive: true });
-}
-if (!fs.existsSync(logFilePath)) {
-  fs.writeFileSync(logFilePath, ""); // create an empty log file if it doesn't exist
-}
-
-function logMessage(message) {
-  const timestamp = new Date().toISOString();
-  const formattedMessage = `[${timestamp}] ${message}`;
-  console.log(formattedMessage);
-  fs.appendFileSync(logFilePath, formattedMessage + "\n");
-}
-
-// in-memory storage for certificates with TTL (5 minutes)
+// in-memory storage for certificates with TTL (1 minute)
 const certificateStore = new Map();
-const CERTIFICATE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
+const CERTIFICATE_TTL = 1 * 60 * 1000; // 1 minute in milliseconds
 
-// clean expired certificates periodically (every minute)
+// clean expired certificates periodically (every 15 seconds)
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
+  let expiredCount = 0;
+
   for (const [token, cert] of certificateStore.entries()) {
     if (now > cert.expiry) {
       certificateStore.delete(token);
+      expiredCount++;
     }
   }
-}, 60000);
+
+  if (expiredCount > 0) {
+    logger.info(`Cleaned up ${logger.val(expiredCount)} expired certificates`);
+  }
+}, 15000);
 
 // generate secure token for certificate access
 function generateSecureToken() {
@@ -47,23 +39,26 @@ function generateSecureToken() {
 // certificate generation endpoint
 router.post("/", async (req, res) => {
   try {
-    logMessage("Received certificate generation request");
+    logger.info(`Certificate request received`);
     const { att_code } = req.body;
 
     if (!att_code) {
-      logMessage("ERROR: Attendance code is missing in request");
+      logger.error(`Missing attendance code`);
       return res.status(400).json({ message: "Attendance code is required" });
     }
 
-    logMessage(`fetching team data for attendance code: ${att_code}`);
+    logger.info(`Looking up team with code ${logger.val(att_code)}`);
     const team = await DevDayAttendance.findOne({ att_code: att_code });
     if (!team) {
-      logMessage(`ERROR: Team not found for attendance code: ${att_code}`);
+      logger.error(`Team not found with code ${logger.val(att_code)}`);
       return res.status(404).json({ message: "Team not found" });
     }
 
     // verify attendance status
     if (!team.attendance) {
+      logger.warn(
+        `Request denied: ${logger.val(team.Team_Name)} has no attendance record`
+      );
       return res.status(400).json({
         message: "Certificate unavailable: Attendance was not marked",
       });
@@ -72,12 +67,16 @@ router.post("/", async (req, res) => {
     // retrieve event details
     const event = await Event.findOne({ competitionName: team.Competition });
     if (!event) {
+      logger.error(`Competition ${logger.val(team.Competition)} not found`);
       return res.status(404).json({ message: "Event not found" });
     }
 
     // verify event has concluded
     const now = new Date();
     if (now <= event.end_time) {
+      logger.warn(
+        `Request denied: ${logger.val(team.Competition)} hasn't ended yet`
+      );
       return res.status(400).json({
         message: "Certificates are only available after the event has ended",
       });
@@ -90,7 +89,12 @@ router.post("/", async (req, res) => {
     if (team.mem3_name) members.push(team.mem3_name);
     if (team.mem4_name) members.push(team.mem4_name);
 
-    logMessage(`Generating certificates for team: ${team.Team_Name}`);
+    logger.info(
+      `Requesting ${logger.val(
+        members.length
+      )} certificates for team ${logger.val(team.Team_Name)}`
+    );
+
     // generate certificates in memory
     const certificates = await generateTeamCertificateBuffers(
       members,
@@ -98,9 +102,12 @@ router.post("/", async (req, res) => {
       team.Team_Name
     );
 
-    logMessage(
-      `Certificates generated successfully for team: ${team.Team_Name}`
+    logger.success(
+      `${logger.val(team.Team_Name)}: ${logger.val(
+        certificates.length
+      )} certificates ready`
     );
+
     // store certificates with tokens and prepare response
     const downloadTokens = certificates.map((cert, index) => {
       const token = generateSecureToken();
@@ -136,25 +143,28 @@ router.post("/", async (req, res) => {
       downloadTokens,
     });
   } catch (err) {
-    logMessage(`Error during certificate generation: ${err.message}`);
+    logger.error(`Error processing certificate request: ${err.message}`);
     return res.status(500).json({ message: "Error generating certificate" });
   }
 });
 
-// download certificate endpoint (updated to use direct buffer sending)
+// download certificate endpoint
 router.get("/download/:token", (req, res) => {
   const { token } = req.params;
-  logMessage(`Received certificate download request for token: ${token}`);
+  const tokenPreview = token.substring(0, 8);
+  logger.info(`Download requested with token ${logger.val(tokenPreview)}...`);
 
   if (!certificateStore.has(token)) {
-    logMessage(`ERROR: Certificate not found or expired for token: ${token}`);
+    logger.error(
+      `Invalid token ${logger.val(tokenPreview)}... - certificate not found`
+    );
     return res
       .status(404)
       .json({ message: "Certificate not found or expired" });
   }
 
   const certificate = certificateStore.get(token);
-  logMessage(`Sending certificate for token: ${token}`);
+  logger.success(`Delivering certificate for ${logger.val(certificate.name)}`);
 
   // set appropriate headers
   res.setHeader("Content-Type", certificate.contentType);
