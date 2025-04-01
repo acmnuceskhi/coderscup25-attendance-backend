@@ -33,14 +33,6 @@ app.use("/api/attendance", attendanceRoutes);
 app.use("/api/certificates", certificateRoutes);
 
 // check apis (will be removed)
-app.get("/getallteams", async (req, res) => {
-  try {
-    const attendances = await DevDayAttendance.find();
-    res.json(attendances);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
 app.post("/addteam", async (req, res) => {
   try {
     const newAttendance = new DevDayAttendance(req.body);
