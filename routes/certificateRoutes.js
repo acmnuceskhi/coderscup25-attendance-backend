@@ -47,7 +47,7 @@ router.post("/", async (req, res) => {
     }
 
     logger.info(
-      `Certificate request recueved, attendance code: ${logger.val(att_code)}`
+      `Certificate request received, attendance code: ${logger.val(att_code)}`
     );
     const team = await DevDayAttendance.findOne({ att_code: att_code });
     if (!team) {
