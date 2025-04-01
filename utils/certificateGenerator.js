@@ -4,10 +4,10 @@ const PDFDocument = require("pdfkit");
 const logger = require("./logger")("CertGenerator");
 
 /**
- * Generate a PDF certificate in memory
- * @param {string} name - Recipient name
- * @param {string} competition - Competition name
- * @param {string} teamName - Team name (for metadata)
+ * generate a PDF certificate in memory
+ * @param {string} name - recipient name
+ * @param {string} competition - competition name
+ * @param {string} teamName - team name (for metadata)
  * @returns {Promise<Buffer>} - PDF buffer
  */
 function generateCertificateBuffer(name, competition, teamName = "") {
@@ -85,11 +85,11 @@ function generateCertificateBuffer(name, competition, teamName = "") {
 }
 
 /**
- * Generate certificates for multiple team members
- * @param {Array<string>} members - Array of member names
- * @param {string} competition - Competition name
- * @param {string} teamName - Team name for metadata
- * @returns {Promise<Array<{name: string, buffer: Buffer}>>} - Named certificate buffers
+ * generate certificates for multiple team members
+ * @param {Array<string>} members - array of member names
+ * @param {string} competition - competition name
+ * @param {string} teamName - team name for metadata
+ * @returns {Promise<Array<{name: string, buffer: Buffer}>>} - named certificate buffers
  */
 async function generateTeamCertificateBuffers(
   members,

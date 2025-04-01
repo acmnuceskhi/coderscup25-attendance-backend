@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const colors = require("colors/safe");
 
-// Initialize colors configuration
+// initialize colors configuration
 colors.setTheme({
   info: "cyan",
   success: "green",
@@ -18,12 +18,12 @@ class Logger {
     this.logDir = path.join(__dirname, "../logs");
     this.logFile = path.join(this.logDir, `${moduleName}.log`);
 
-    // Create log directory if it doesn't exist
+    // create log directory if it doesn't exist
     if (!fs.existsSync(this.logDir)) {
       fs.mkdirSync(this.logDir, { recursive: true });
     }
 
-    // Create log file if it doesn't exist
+    // create log file if it doesn't exist
     if (!fs.existsSync(this.logFile)) {
       fs.writeFileSync(this.logFile, "");
     }
@@ -32,12 +32,12 @@ class Logger {
   _formatMessage(level, message) {
     const timestamp = new Date().toISOString();
 
-    // Fixed width columns for better readability - increased padding for better alignment
-    const timestampStr = `[${timestamp}]`.padEnd(27); // Timestamp is about 24 chars + brackets
-    const levelStr = `[${level}]`.padEnd(12); // Increased to 12 from 8 to fit [SUCCESS]
-    const moduleStr = `[${this.moduleName}]`.padEnd(20); // Increased to 20 from 15 for longer module names
+    // fixed width columns for better readability
+    const timestampStr = `[${timestamp}]`.padEnd(27);
+    const levelStr = `[${level}]`.padEnd(12);
+    const moduleStr = `[${this.moduleName}]`.padEnd(20);
 
-    // Add a separator for visual distinction between metadata and message
+    // add a separator for visual distinction between metadata and message
     const prefix = `${timestampStr} ${levelStr} ${moduleStr} │ `;
     return prefix + message;
   }
@@ -46,16 +46,16 @@ class Logger {
     const formattedMessage = this._formatMessage(level, message);
     console.log(colors[color](formattedMessage));
 
-    // File logs don't need fancy formatting - keep it plain
+    // append log to file
     fs.appendFileSync(this.logFile, formattedMessage + "\n");
 
     return formattedMessage;
   }
 
   /**
-   * Formats a variable value for display in logs
-   * @param {any} val - The value to format
-   * @returns {string} - Formatted value
+   * formats a variable value for display in logs
+   * @param {any} val - the value to format
+   * @returns {string} - formatted value
    */
   val(val) {
     if (val === null) {

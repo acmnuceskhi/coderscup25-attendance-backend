@@ -39,7 +39,6 @@ function generateSecureToken() {
 // certificate generation endpoint
 router.post("/", async (req, res) => {
   try {
-    logger.info(`Certificate request received`);
     const { att_code } = req.body;
 
     if (!att_code) {
@@ -47,7 +46,9 @@ router.post("/", async (req, res) => {
       return res.status(400).json({ message: "Attendance code is required" });
     }
 
-    logger.info(`Looking up team with code ${logger.val(att_code)}`);
+    logger.info(
+      `Certificate request recueved, attendance code: ${logger.val(att_code)}`
+    );
     const team = await DevDayAttendance.findOne({ att_code: att_code });
     if (!team) {
       logger.error(`Team not found with code ${logger.val(att_code)}`);
@@ -57,7 +58,9 @@ router.post("/", async (req, res) => {
     // verify attendance status
     if (!team.attendance) {
       logger.warn(
-        `Request denied: ${logger.val(team.Team_Name)} has no attendance record`
+        `Request denied: ${logger.val(
+          team.Team_Name
+        )} - attendance wasn't marked`
       );
       return res.status(400).json({
         message: "Certificate unavailable: Attendance was not marked",
@@ -90,9 +93,9 @@ router.post("/", async (req, res) => {
     if (team.mem4_name) members.push(team.mem4_name);
 
     logger.info(
-      `Requesting ${logger.val(
-        members.length
-      )} certificates for team ${logger.val(team.Team_Name)}`
+      `Requesting ${logger.val(members.length)} certificates for ${logger.val(
+        team.Team_Name
+      )}`
     );
 
     // generate certificates in memory
@@ -156,7 +159,9 @@ router.get("/download/:token", (req, res) => {
 
   if (!certificateStore.has(token)) {
     logger.error(
-      `Invalid token ${logger.val(tokenPreview)}... - certificate not found`
+      `Invalid token ${logger.val(
+        tokenPreview
+      )}... - certificate not found or expired`
     );
     return res
       .status(404)
