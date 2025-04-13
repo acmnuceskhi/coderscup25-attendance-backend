@@ -65,7 +65,11 @@ router.post('/mark', async (req, res) => {
 
             // check if the attendance is already marked
             if (team.attendance) {
-                return res.status(400).json({ message: "Attendance is already marked for this team" });
+                return res.status(409).json({
+                    message: "Attendance is already marked for this team",
+                    attendanceAlreadyMarked: true,
+                    team
+                });
             }
             team.attendance = true;
             await team.save();
