@@ -1,4 +1,5 @@
 const express = require('express');
+const CryptoJS = require("crypto-js");
 const { DevDayAttendance, Event } = require('../models/Models');
 
 const router = express.Router();
@@ -22,10 +23,23 @@ router.get('/', (req, res) => {
 // to mark attendance - for general public
 // Attendance marking {location, code}
 router.post('/mark', async (req, res) => {
-    const { att_code, latitude, longitude } = req.body;
-    if (!att_code || latitude === undefined || longitude === undefined) {
-        return res.status(400).json({ message: "Parameters missing (att_code, latitude, longitude)" });
+    const { att_code, coordinates: encryptedCoordinates } = req.body;
+    // console.log('encryptedCoordinates', encryptedCoordinates);
+    if (!att_code || !encryptedCoordinates) {
+        return res.status(400).json({ message: "Parameters missing (att_code, coordinates)" });
     }
+    const secretKey = process.env.COORDS_ENCRYPTION_KEY;
+    let decrypted;
+    try {
+        const bytes = CryptoJS.AES.decrypt(encryptedCoordinates, secretKey);
+        const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
+        decrypted = JSON.parse(decryptedData);
+    } catch (err) {
+        return res.status(400).json({ message: "Failed to decrypt coordinates" });
+    }
+    const { latitude, longitude } = decrypted;
+    // console.log('decrypted', decrypted);
+
     // Fast's coordinates
     const centerLatitude = 24.8568496;
     const centerLongitude = 67.2644237;
@@ -42,13 +56,11 @@ router.post('/mark', async (req, res) => {
                 return res.status(404).json({ message: "Event not found (invalid team code)" });
             }
 
-            // check if the event is not ongoing
             const now = new Date();
             if (now < event.start_time || now > event.end_time) {
                 return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
             }
 
-            // attendacne is marked already
             if (team.attendance) {
                 return res.status(400).json({ message: "Attendance is already marked for this team" });
             }
