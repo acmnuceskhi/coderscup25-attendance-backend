@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://attendancefrontend25.vercel.app", // Frontend URL
+    origin: "https://attendance.devday25.com", // Frontend URL
     credentials: true, // Allow credentials (cookies, authorization headers)
   })
 );
