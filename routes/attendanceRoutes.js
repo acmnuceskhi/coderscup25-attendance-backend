@@ -44,7 +44,7 @@ router.post('/mark', async (req, res) => {
     const centerLatitude = 24.8568496;
     const centerLongitude = 67.2644237;
     const distance = calculateDistance(latitude, longitude, centerLatitude, centerLongitude);
-    if (distance <= 500) {
+    if (distance <= 2500) {
         try {
             const team = await DevDayAttendance.findOne({ att_code: att_code });
             if (!team) {
