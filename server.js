@@ -17,7 +17,7 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Frontend URL
+    origin: "https://attendance.devday25.com", // Frontend URL
     credentials: true, // Allow credentials (cookies, authorization headers)
   })
 );
