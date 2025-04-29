@@ -46,7 +46,10 @@ function generateCertificateBuffer(name, competition, teamName = "") {
       });
 
       // add background image
-      const imagePath = path.join(__dirname, "../assets/certificateDesign.jpg");
+      const imagePath = path.join(
+        __dirname,
+        "../assets/certificateDesign1.png"
+      );
       doc.image(imagePath, 0, 0, { width, height });
 
       // calculate font size based on competition length
@@ -56,21 +59,19 @@ function generateCertificateBuffer(name, competition, teamName = "") {
       }
 
       // register fonts
-      doc.font(
-        path.join(__dirname, "../assets/fonts/PlayfairDisplay-Italic.ttf")
-      );
+      doc.font(path.join(__dirname, "../assets/fonts/Birthstone-Regular.ttf"));
 
       // position for recipient name
       doc
         .fontSize(26.64)
-        .fillColor("rgba(0, 0, 0, 0.863)")
-        .text(name, 3.1 * 72, 2.65 * 72, {
+        .fillColor("rgb(139,13,17)")
+        .text(name, 1.3 * 72, 2.85 * 72, {
           width: 4.4 * 72,
           align: "center",
         });
 
       // position for competition name
-      doc.fontSize(fontSize).text(competition, 4 * 72, 3.3 * 72, {
+      doc.fontSize(fontSize).text(competition, 1.3 * 72, 3.5 * 72, {
         width: 4.1 * 72,
         align: "center",
       });
@@ -129,7 +130,33 @@ async function generateTeamCertificateBuffers(
   return certificates;
 }
 
+/**
+ * Save a certificate to a file for testing positioning
+ * @param {string} name - recipient name
+ * @param {string} competition - competition name
+ * @param {string} outputPath - path where to save the certificate
+ * @returns {Promise<string>} - path to the saved file
+ */
+async function saveCertificateForTesting(name, competition, outputPath) {
+  try {
+    const buffer = await generateCertificateBuffer(name, competition);
+    const filePath = path.join(
+      outputPath,
+      `certificate_test_${Date.now()}.pdf`
+    );
+
+    fs.writeFileSync(filePath, buffer);
+    logger.info(`Test certificate saved to ${logger.val(filePath)}`);
+
+    return filePath;
+  } catch (err) {
+    logger.error(`Failed to save test certificate: ${err.message}`);
+    throw err;
+  }
+}
+
 module.exports = {
   generateCertificateBuffer,
   generateTeamCertificateBuffers,
+  saveCertificateForTesting,
 };
