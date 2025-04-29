@@ -48,30 +48,24 @@ function generateCertificateBuffer(name, competition, teamName = "") {
       // add background image
       const imagePath = path.join(
         __dirname,
-        "../assets/certificateDesign1.png"
+        "../assets/certificateDesign2025.png"
       );
       doc.image(imagePath, 0, 0, { width, height });
-
-      // calculate font size based on competition length
-      let fontSize = 26.64; // 0.37in in points
-      if (competition.length > 19) {
-        fontSize = 23.76; // 0.33in in points
-      }
 
       // register fonts
       doc.font(path.join(__dirname, "../assets/fonts/Birthstone-Regular.ttf"));
 
       // position for recipient name
       doc
-        .fontSize(26.64)
-        .fillColor("rgb(139,13,17)")
-        .text(name, 1.3 * 72, 2.85 * 72, {
-          width: 4.4 * 72,
+        .fontSize(58.1)
+        .fillColor("#8b0d11")
+        .text(name, 1 * 72, 2 * 72, {
+          width: 5 * 72,
           align: "center",
         });
 
       // position for competition name
-      doc.fontSize(fontSize).text(competition, 1.3 * 72, 3.5 * 72, {
+      doc.fontSize(33.5).text(competition, 1.3 * 72, 2.9 * 72, {
         width: 4.1 * 72,
         align: "center",
       });

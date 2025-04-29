@@ -19,7 +19,12 @@ if (!fs.existsSync(outputDir)) {
 async function runTest() {
   try {
     // Test different name lengths to see positioning
-    const testCases = [{ name: "John Doe", competition: "Web Development" }];
+    const testCases = [
+      {
+        name: "Ms. Tehreem Ali Khan",
+        competition: "Math Olympiad Competition",
+      },
+    ];
 
     console.log("Generating test certificates...");
 
