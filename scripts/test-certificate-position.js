@@ -21,8 +21,16 @@ async function runTest() {
     // Test different name lengths to see positioning
     const testCases = [
       {
-        name: "Ms. Tehreem Ali Khan",
+        name: "Tehreem Ali Khan",
         competition: "Math Olympiad Competition",
+      },
+      {
+        name: "Syed Abdullah Bin Tariq",
+        competition: "Fyfy Gjgjgj",
+      },
+      {
+        name: "Syed Abdullah Bin Tariq",
+        competition: "Fix Fast",
       },
     ];
 

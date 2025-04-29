@@ -57,15 +57,15 @@ function generateCertificateBuffer(name, competition, teamName = "") {
 
       // position for recipient name
       doc
-        .fontSize(58.1)
+        .fontSize(48)
         .fillColor("#8b0d11")
-        .text(name, 1 * 72, 2 * 72, {
+        .text(name, 0.92 * 72, 2.1 * 72, {
           width: 5 * 72,
           align: "center",
         });
 
       // position for competition name
-      doc.fontSize(33.5).text(competition, 1.3 * 72, 2.9 * 72, {
+      doc.fontSize(24).text(competition, 1.3 * 72, 3 * 72, {
         width: 4.1 * 72,
         align: "center",
       });
