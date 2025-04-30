@@ -11,10 +11,18 @@ const logger = require("./utils/logger")("Server");
 global.circuitBreakers = new Map();
 global.circuitBreakers.set("certificate_generator", {
   failureCount: 0,
-  failureThreshold: 5, // Number of failures before opening circuit
-  resetTimeout: 30000, // 30 seconds timeout before trying again
+  failureThreshold: 10, // Increased from 5 to handle more intermittent failures
+  resetTimeout: 60000, // Increased from 30s to 60s to give system more time to recover
+  successThreshold: 3, // Number of consecutive successes needed to close circuit
+  successCount: 0,
   isOpen: false,
+  isHalfOpen: false,
   resetTime: 0,
+  lastAttemptTime: 0,
+  totalRequests: 0,
+  totalFailures: 0,
+  consecutiveFailures: 0, // Track consecutive failures for faster tripping
+  consecutiveFailureThreshold: 5, // Trip after 5 consecutive failures
 });
 
 const VerifyJWT = require("./middleware/AuthJWT");

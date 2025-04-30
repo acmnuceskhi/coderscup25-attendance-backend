@@ -48,6 +48,57 @@ router.get("/health", async (req, res) => {
       fallbackTemplateExists: fs.existsSync(fallbackTemplate),
     };
 
+    // Check memory usage
+    const memoryUsage = process.memoryUsage();
+    const heapUsedMB = Math.round(memoryUsage.heapUsed / 1024 / 1024);
+    const heapTotalMB = Math.round(memoryUsage.heapTotal / 1024 / 1024);
+    const rssUsedMB = Math.round(memoryUsage.rss / 1024 / 1024);
+    const resourceStatus = {
+      memoryUsage: {
+        heapUsedMB,
+        heapTotalMB,
+        heapUsagePercent: Math.round((heapUsedMB / heapTotalMB) * 100),
+        rssUsedMB,
+      },
+      certificateStore: {
+        currentSize: certificateStore.size,
+        maxSize: MAX_CERTIFICATE_STORE_SIZE,
+        usagePercent: Math.round(
+          (certificateStore.size / MAX_CERTIFICATE_STORE_SIZE) * 100
+        ),
+      },
+    };
+
+    // Get circuit breaker status
+    const circuitBreakerKey = "certificate_generator";
+    const circuitBreaker =
+      global.circuitBreakers && global.circuitBreakers.get(circuitBreakerKey);
+    const circuitBreakerStatus = circuitBreaker
+      ? {
+          status: circuitBreaker.isOpen
+            ? "open"
+            : circuitBreaker.isHalfOpen
+            ? "half-open"
+            : "closed",
+          failureCount: circuitBreaker.failureCount,
+          totalRequests: circuitBreaker.totalRequests || 0,
+          totalFailures: circuitBreaker.totalFailures || 0,
+          failureRate: circuitBreaker.totalRequests
+            ? (
+                (circuitBreaker.totalFailures / circuitBreaker.totalRequests) *
+                100
+              ).toFixed(2) + "%"
+            : "0%",
+          lastAttemptTime: circuitBreaker.lastAttemptTime
+            ? new Date(circuitBreaker.lastAttemptTime).toISOString()
+            : null,
+          resetTime:
+            circuitBreaker.isOpen && circuitBreaker.resetTime
+              ? new Date(circuitBreaker.resetTime).toISOString()
+              : null,
+        }
+      : { status: "not_configured" };
+
     // Try to generate a test certificate
     const startTime = Date.now();
     const testBuffer = await generateCertificateBuffer(
@@ -61,8 +112,16 @@ router.get("/health", async (req, res) => {
 
     // Prepare health report
     const healthReport = {
-      status: "healthy",
+      status:
+        !templateStatus.primaryTemplateExists &&
+        !templateStatus.fallbackTemplateExists
+          ? "critical"
+          : circuitBreakerStatus.status === "open"
+          ? "degraded"
+          : "healthy",
       templateStatus,
+      resourceStatus,
+      circuitBreaker: circuitBreakerStatus,
       certificateGeneration: {
         successful: testBuffer.length > 0,
         generationTimeMs: generationTime,
@@ -79,7 +138,50 @@ router.get("/health", async (req, res) => {
         lastError: metrics.lastError,
         lastErrorTime: metrics.lastErrorTime,
       },
+      spikeReadiness: {
+        rateLimit: {
+          limit: RATE_LIMIT_MAX,
+          window: RATE_LIMIT_WINDOW / 1000 + " seconds",
+        },
+        certificateStore: {
+          ttl: CERTIFICATE_TTL / 1000 + " seconds",
+          maxSize: MAX_CERTIFICATE_STORE_SIZE,
+        },
+        memoryUtilization:
+          resourceStatus.memoryUsage.heapUsagePercent < 80 ? "good" : "warning",
+        circuitBreakerConfigured: circuitBreaker ? "yes" : "no",
+        readiness:
+          templateStatus.primaryTemplateExists ||
+          templateStatus.fallbackTemplateExists
+            ? resourceStatus.memoryUsage.heapUsagePercent < 80
+              ? "ready"
+              : "limited"
+            : "not_ready",
+      },
+      recommendations: [],
     };
+
+    // Add recommendations based on health check
+    if (!templateStatus.primaryTemplateExists) {
+      healthReport.recommendations.push(
+        "Primary certificate template missing - add or verify certificateDesign2025.png"
+      );
+    }
+    if (!templateStatus.fallbackTemplateExists) {
+      healthReport.recommendations.push(
+        "Backup certificate template missing - add certificateDesign1.png as fallback"
+      );
+    }
+    if (resourceStatus.memoryUsage.heapUsagePercent > 80) {
+      healthReport.recommendations.push(
+        "High memory usage - consider scaling horizontally for traffic spikes"
+      );
+    }
+    if (metrics.averageGenerationTimeMs > 1000) {
+      healthReport.recommendations.push(
+        "Certificate generation is slower than optimal - consider optimizing PDF generation"
+      );
+    }
 
     logger.info(`Health check completed: ${JSON.stringify(healthReport)}`);
     return res.json(healthReport);
@@ -106,17 +208,36 @@ router.get("/health", async (req, res) => {
 // in-memory storage for certificates with TTL (1 minute)
 const certificateStore = new Map();
 const CERTIFICATE_TTL = 1 * 60 * 1000; // 1 minute in milliseconds
+const MAX_CERTIFICATE_STORE_SIZE = 1000; // Maximum number of certificates to store
 
 // clean expired certificates periodically (every 15 seconds)
 const cleanupInterval = setInterval(() => {
   const now = Date.now();
   let expiredCount = 0;
 
+  // First clean expired certificates
   for (const [token, cert] of certificateStore.entries()) {
     if (now > cert.expiry) {
       certificateStore.delete(token);
       expiredCount++;
     }
+  }
+
+  // If still over max size after cleaning expired ones, remove oldest entries
+  if (certificateStore.size > MAX_CERTIFICATE_STORE_SIZE) {
+    // Convert to array to sort by expiry
+    const entries = Array.from(certificateStore.entries());
+    entries.sort((a, b) => a[1].expiry - b[1].expiry);
+
+    // Remove oldest entries until under the limit
+    const entriesToRemove = entries.slice(
+      0,
+      certificateStore.size - MAX_CERTIFICATE_STORE_SIZE
+    );
+    entriesToRemove.forEach(([token]) => {
+      certificateStore.delete(token);
+      expiredCount++;
+    });
   }
 
   if (expiredCount > 0) {
@@ -169,6 +290,41 @@ router.post("/", rateLimiter, async (req, res) => {
   metrics.totalRequests++;
 
   try {
+    // Get circuit breaker to update metrics
+    const circuitBreakerKey = "certificate_generator";
+    const circuitBreaker =
+      global.circuitBreakers && global.circuitBreakers.get(circuitBreakerKey);
+
+    if (circuitBreaker) {
+      circuitBreaker.totalRequests++;
+      circuitBreaker.lastAttemptTime = Date.now();
+
+      // Check if circuit is open
+      if (circuitBreaker.isOpen) {
+        // Check if it's time to try again (half-open state)
+        if (Date.now() > circuitBreaker.resetTime) {
+          circuitBreaker.isOpen = false;
+          circuitBreaker.isHalfOpen = true;
+          logger.info(
+            "Certificate circuit half-open, testing with this request"
+          );
+        } else {
+          const retryAfter = Math.ceil(
+            (circuitBreaker.resetTime - Date.now()) / 1000
+          );
+          logger.warn(
+            `Circuit breaker open: certificate generation temporarily unavailable`
+          );
+          metrics.failedRequests++;
+          return res.status(503).json({
+            message:
+              "Certificate generation temporarily unavailable due to system load",
+            retryAfter: retryAfter > 0 ? retryAfter : 30,
+          });
+        }
+      }
+    }
+
     const { att_code } = req.body;
 
     if (!att_code) {
@@ -233,26 +389,6 @@ router.post("/", rateLimiter, async (req, res) => {
       )}`
     );
 
-    // Circuit breaker implementation
-    const circuitBreakerKey = "certificate_generator";
-    const circuitBreaker =
-      global.circuitBreakers && global.circuitBreakers.get(circuitBreakerKey);
-
-    if (circuitBreaker && circuitBreaker.isOpen) {
-      const retryAfter = Math.ceil(
-        (circuitBreaker.resetTime - Date.now()) / 1000
-      );
-      logger.warn(
-        `Circuit breaker open: certificate generation temporarily unavailable`
-      );
-      metrics.failedRequests++;
-      return res.status(503).json({
-        message:
-          "Certificate generation temporarily unavailable due to system load",
-        retryAfter: retryAfter > 0 ? retryAfter : 30,
-      });
-    }
-
     // generate certificates in memory
     const certificates = await generateTeamCertificateBuffers(
       members,
@@ -265,6 +401,21 @@ router.post("/", rateLimiter, async (req, res) => {
         certificates.length
       )} certificates ready`
     );
+
+    // If we get here in half-open state, record the success
+    if (circuitBreaker && circuitBreaker.isHalfOpen) {
+      circuitBreaker.successCount++;
+      if (circuitBreaker.successCount >= circuitBreaker.successThreshold) {
+        // Reset circuit breaker after enough consecutive successes
+        circuitBreaker.isHalfOpen = false;
+        circuitBreaker.failureCount = 0;
+        circuitBreaker.consecutiveFailures = 0;
+        circuitBreaker.successCount = 0;
+        logger.info(
+          "Certificate circuit breaker closed after successful recovery"
+        );
+      }
+    }
 
     // store certificates with tokens and prepare response
     const downloadTokens = certificates.map((cert, index) => {
@@ -314,6 +465,39 @@ router.post("/", rateLimiter, async (req, res) => {
     metrics.failedRequests++;
     metrics.lastError = err.message;
     metrics.lastErrorTime = new Date().toISOString();
+
+    // Update circuit breaker
+    const circuitBreakerKey = "certificate_generator";
+    const circuitBreaker =
+      global.circuitBreakers && global.circuitBreakers.get(circuitBreakerKey);
+
+    if (circuitBreaker) {
+      circuitBreaker.failureCount++;
+      circuitBreaker.totalFailures++;
+      circuitBreaker.consecutiveFailures++;
+
+      // Check if circuit should open based on consecutive failures (faster response)
+      if (
+        circuitBreaker.consecutiveFailures >=
+        circuitBreaker.consecutiveFailureThreshold
+      ) {
+        circuitBreaker.isOpen = true;
+        circuitBreaker.isHalfOpen = false;
+        circuitBreaker.resetTime = Date.now() + circuitBreaker.resetTimeout;
+        logger.warn(
+          `Certificate circuit breaker opened due to ${circuitBreaker.consecutiveFailures} consecutive failures`
+        );
+      }
+      // Or based on total failure count (slower response but more tolerant of intermittent issues)
+      else if (circuitBreaker.failureCount >= circuitBreaker.failureThreshold) {
+        circuitBreaker.isOpen = true;
+        circuitBreaker.isHalfOpen = false;
+        circuitBreaker.resetTime = Date.now() + circuitBreaker.resetTimeout;
+        logger.warn(
+          `Certificate circuit breaker opened due to failure threshold (${circuitBreaker.failureCount}/${circuitBreaker.failureThreshold})`
+        );
+      }
+    }
 
     logger.error(`Error processing certificate request: ${err.message}`);
     return res.status(500).json({ message: "Error generating certificate" });
