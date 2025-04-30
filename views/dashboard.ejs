@@ -1,0 +1,150 @@
+<!-- Dashboard Main View -->
+<div class="row">
+  <!-- System Health Card -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5>System Health</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <h6>
+            Server Status:
+            <span id="serverStatus" class="badge bg-success">Healthy</span>
+          </h6>
+          <p>Uptime: <span id="uptime">-</span></p>
+        </div>
+        <div class="mb-3">
+          <h6>Memory Usage</h6>
+          <div class="progress mb-2">
+            <div
+              id="memoryUsage"
+              class="progress-bar"
+              role="progressbar"
+              style="width: 0%"
+            ></div>
+          </div>
+          <small
+            >Heap Used: <span id="heapUsed">-</span> /
+            <span id="heapTotal">-</span> MB</small
+          >
+        </div>
+        <div class="mb-3">
+          <h6>
+            Database Status:
+            <span id="dbStatus" class="badge bg-secondary">-</span>
+          </h6>
+        </div>
+        <div class="text-end">
+          <button id="refreshHealth" class="btn btn-sm btn-outline-primary">
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Circuit Breakers Card -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h5>Circuit Breakers</h5>
+      </div>
+      <div class="card-body">
+        <table class="table table-sm">
+          <thead>
+            <tr>
+              <th>Service</th>
+              <th>Status</th>
+              <th>Failures</th>
+              <th>Reset Time</th>
+            </tr>
+          </thead>
+          <tbody id="circuitBreakersTable">
+            <!-- Circuit breakers will be populated here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificate Stats Card -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-success text-white">
+        <h5>Certificate Generation Stats</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <h6>Success Rate</h6>
+          <div class="progress mb-2">
+            <div
+              id="certSuccessRate"
+              class="progress-bar bg-success"
+              role="progressbar"
+              style="width: 0%"
+            ></div>
+          </div>
+          <small
+            ><span id="certSuccessCount">0</span> successful /
+            <span id="certTotalCount">0</span> total</small
+          >
+        </div>
+        <div class="mb-3">
+          <h6>Average Generation Time: <span id="avgGenTime">-</span> ms</h6>
+        </div>
+        <div class="mb-3">
+          <h6>Certificate Store Usage</h6>
+          <div class="progress mb-2">
+            <div
+              id="certStoreUsage"
+              class="progress-bar bg-info"
+              role="progressbar"
+              style="width: 0%"
+            ></div>
+          </div>
+          <small
+            ><span id="certStoreCount">0</span> /
+            <span id="certStoreMax">0</span> certificates</small
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Errors Card -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-danger text-white">
+        <h5>Recent Errors</h5>
+      </div>
+      <div class="card-body">
+        <div id="recentErrors">
+          <!-- Recent errors will be populated here -->
+          <p id="noErrorsMessage" class="text-muted">No recent errors</p>
+        </div>
+        <div class="text-end mt-2">
+          <a
+            href="/admin/monitoring/logs"
+            class="btn btn-sm btn-outline-secondary"
+            >View All Logs</a
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row mt-3">
+  <div class="col-md-12 mb-4">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h5>Memory Usage Over Time</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="memoryChart" height="150"></canvas>
+      </div>
+    </div>
+  </div>
+</div>

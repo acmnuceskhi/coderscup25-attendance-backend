@@ -1,0 +1,111 @@
+<!-- Certificate Stats View Page -->
+<div class="row">
+  <!-- Certificate Metrics -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5>Certificate Generation Metrics</h5>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6>Total Requests</h6>
+            <p class="metric-value" id="certTotalRequests">0</p>
+          </div>
+          <div class="col-md-6">
+            <h6>Success Rate</h6>
+            <p class="metric-value" id="certSuccessRateDisplay">0%</p>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-6">
+            <h6>Successful Generations</h6>
+            <p class="metric-value text-success" id="certSuccessfulRequests">
+              0
+            </p>
+          </div>
+          <div class="col-md-6">
+            <h6>Failed Generations</h6>
+            <p class="metric-value text-danger" id="certFailedRequests">0</p>
+          </div>
+        </div>
+        <div class="mb-3">
+          <h6>Average Generation Time</h6>
+          <p class="metric-value" id="certAvgTime">0 ms</p>
+        </div>
+        <div class="mb-3">
+          <h6>Certificate Store Usage</h6>
+          <div class="progress mb-2">
+            <div
+              id="certStoreUsageBar"
+              class="progress-bar bg-info"
+              role="progressbar"
+              style="width: 0%"
+            ></div>
+          </div>
+          <small
+            ><span id="certStoreSize">0</span> /
+            <span id="certStoreMaxSize">0</span> certificates (<span
+              id="certStorePercentage"
+              >0%</span
+            >)</small
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Certificate Environment -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-info text-white">
+        <h5>Certificate Environment</h5>
+      </div>
+      <div class="card-body">
+        <div class="mb-3">
+          <h6>Node Version</h6>
+          <p id="nodeVersion" class="mb-3"></p>
+        </div>
+        <div class="mb-3">
+          <h6>Templates</h6>
+          <ul id="templateStatus" class="list-group list-group-flush mb-3">
+            <!-- Template status will be inserted here -->
+          </ul>
+        </div>
+        <div class="mb-3">
+          <h6>Rate Limiting</h6>
+          <p>
+            Max requests: <span id="rateLimitMax"></span> per
+            <span id="rateLimitWindow"></span>
+          </p>
+          <p>Certificate TTL: <span id="certTTL"></span></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Last Error -->
+  <div class="col-md-6 mb-4">
+    <div class="card">
+      <div class="card-header bg-danger text-white">
+        <h5>Last Error</h5>
+      </div>
+      <div class="card-body">
+        <p id="lastErrorTime">No errors recorded</p>
+        <div id="lastErrorMessage"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="col-md-12 mb-4">
+    <div class="card">
+      <div class="card-header bg-secondary text-white">
+        <h5>Certificate Generation Timeline</h5>
+      </div>
+      <div class="card-body">
+        <canvas id="certificateTimelineChart" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+</div>

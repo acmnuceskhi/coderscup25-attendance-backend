@@ -3,6 +3,8 @@ const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const path = require("path");
+const expressLayouts = require("express-ejs-layouts");
 const { DevDayAttendance } = require("./models/Models");
 const { memoryMonitor } = require("./utils/memoryMonitor");
 const logger = require("./utils/logger")("Server");
@@ -29,18 +31,28 @@ const VerifyJWT = require("./middleware/AuthJWT");
 const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
-
 const certificateRoutes = require("./routes/certificateRoutes");
+const monitoringRoutes = require("./routes/monitoringRoutes");
 
 const app = express();
+
+// Configure EJS
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+app.use(expressLayouts);
+app.set("layout", "layouts/main");
+
 app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: "https://attendance.devday25.com", // Frontend URL
+    origin: ["https://attendance.devday25.com", "http://localhost:3000"], // Frontend URLs
     credentials: true, // Allow credentials (cookies, authorization headers)
   })
 );
+
+// Serve static files
+app.use(express.static(path.join(__dirname, "public")));
 
 // Global error handler middleware
 app.use((err, req, res, next) => {
@@ -68,6 +80,11 @@ app.use((err, req, res, next) => {
 
 app.get("/", (req, res) => {
   res.send("Hello DevDay25!");
+});
+
+// Root redirects to monitoring login
+app.get("/admin", (req, res) => {
+  res.redirect("/admin/monitoring/login");
 });
 
 // Server health check endpoint
@@ -106,8 +123,9 @@ app.get("/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", VerifyJWT, adminRoutes);
 app.use("/api/attendance", attendanceRoutes);
-// app.use('/api/results', resultsRoutes);
 app.use("/api/certificates", certificateRoutes);
+// Monitoring routes handle their own auth internally
+app.use("/admin/monitoring", monitoringRoutes);
 
 // check apis (will be removed)
 app.post("/addteam", async (req, res) => {
@@ -151,6 +169,9 @@ function gracefulShutdown() {
     process.exit(1);
   }, 5000);
 }
+
+// Export mongoose for monitoring routes
+global.mongoose = mongoose;
 
 mongoose
   .connect(process.env.MONGO_URI)
