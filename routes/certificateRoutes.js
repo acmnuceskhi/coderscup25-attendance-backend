@@ -55,17 +55,17 @@ router.post("/", async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    // verify attendance status
-    if (!team.attendance) {
-      logger.warn(
-        `Request denied: ${logger.val(
-          team.Team_Name
-        )} - attendance wasn't marked`
-      );
-      return res.status(400).json({
-        message: "Certificate unavailable: Attendance was not marked",
-      });
-    }
+    // // verify attendance status
+    // if (!team.attendance) {
+    //   logger.warn(
+    //     `Request denied: ${logger.val(
+    //       team.Team_Name
+    //     )} - attendance wasn't marked`
+    //   );
+    //   return res.status(400).json({
+    //     message: "Certificate unavailable: Attendance was not marked",
+    //   });
+    // }
 
     // retrieve event details
     const event = await Event.findOne({ competitionName: team.Competition });
@@ -165,7 +165,7 @@ router.get("/download/:token", (req, res) => {
     );
     return res
       .status(404)
-      .json({ message: "Certificate not found or expired" });
+      .json({ message: "Certificate not found or expired (Refresh page)" });
   }
 
   const certificate = certificateStore.get(token);
