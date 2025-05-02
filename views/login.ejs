@@ -1,0 +1,82 @@
+<!-- Login Page for Monitoring Dashboard -->
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5">
+    <div class="card">
+      <div class="card-header bg-primary text-white">
+        <h5>Monitoring Dashboard Login</h5>
+      </div>
+      <div class="card-body">
+        <div id="loginAlert" class="alert alert-danger d-none"></div>
+        <form id="loginForm">
+          <div class="mb-3">
+            <label for="username" class="form-label">Username</label>
+            <input type="text" class="form-control" id="username" required />
+          </div>
+          <div class="mb-3">
+            <label for="password" class="form-label">Password</label>
+            <input
+              type="password"
+              class="form-control"
+              id="password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Login</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const loginForm = document.getElementById("loginForm");
+    const loginAlert = document.getElementById("loginAlert");
+
+    loginForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+
+      // Show loading state
+      const submitButton = loginForm.querySelector('button[type="submit"]');
+      submitButton.innerHTML = "Logging in...";
+      submitButton.disabled = true;
+      loginAlert.classList.add("d-none");
+
+      // Send login request
+      fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+        credentials: "include",
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.msg === "Login successful") {
+            // Redirect to dashboard on success
+            window.location.href = "/admin/monitoring";
+          } else {
+            // Show error message
+            loginAlert.textContent =
+              data.msg || "Login failed. Please check your credentials.";
+            loginAlert.classList.remove("d-none");
+          }
+        })
+        .catch((error) => {
+          console.error("Login error:", error);
+          loginAlert.textContent =
+            "An error occurred during login. Please try again.";
+          loginAlert.classList.remove("d-none");
+        })
+        .finally(() => {
+          // Reset button state
+          submitButton.innerHTML = "Login";
+          submitButton.disabled = false;
+        });
+    });
+  });
+</script>

@@ -10,6 +10,11 @@ lerna-debug.log*
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
+# Test output files
+test-output/
+test-output/load-test/
+test-output/validation/
+
 # Runtime data
 pids
 *.pid
@@ -128,5 +133,6 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
 
 /certificates

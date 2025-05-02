@@ -12,6 +12,12 @@ colors.setTheme({
   value: "white", // for variable values
 });
 
+// Function to strip ANSI color codes from strings
+function stripColorCodes(str) {
+  // This regex pattern matches ANSI escape sequences
+  return str.replace(/\u001b\[\d+m/g, "");
+}
+
 class Logger {
   constructor(moduleName) {
     this.moduleName = moduleName;
@@ -46,8 +52,11 @@ class Logger {
     const formattedMessage = this._formatMessage(level, message);
     console.log(colors[color](formattedMessage));
 
+    // Strip color codes before writing to file
+    const cleanMessage = stripColorCodes(formattedMessage);
+
     // append log to file
-    fs.appendFileSync(this.logFile, formattedMessage + "\n");
+    fs.appendFileSync(this.logFile, cleanMessage + "\n");
 
     return formattedMessage;
   }
