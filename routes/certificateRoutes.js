@@ -356,6 +356,7 @@ router.post("/", rateLimiter, async (req, res) => {
       });
     }
 
+
     // retrieve event details
     const event = await Event.findOne({ competitionName: team.Competition });
     if (!event) {
@@ -518,7 +519,7 @@ router.get("/download/:token", rateLimiter, (req, res) => {
     );
     return res
       .status(404)
-      .json({ message: "Certificate not found or expired" });
+      .json({ message: "Certificate not found or expired (Refresh page)" });
   }
 
   const certificate = certificateStore.get(token);
