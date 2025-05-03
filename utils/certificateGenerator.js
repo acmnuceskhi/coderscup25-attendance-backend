@@ -321,7 +321,7 @@ function generateCertificateBuffer(
       doc
         .fontSize(48)
         .fillColor("#8b0d11")
-        .text(safeName, 0.92 * 72, 2.1 * 72, {
+        .text(safeName, 0.92 * 72, 2.05 * 72, {
           width: 5 * 72,
           align: "center",
         });
