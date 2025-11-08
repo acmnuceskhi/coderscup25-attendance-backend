@@ -85,6 +85,7 @@ router.get('/', (req, res) => {
 // to mark attendance - for general public
 // Attendance marking {location, code}
 router.post('/mark', async (req, res) => {
+    console.log('Request received',req.body);
     const { att_code, coordinates: encryptedCoordinates } = req.body;
     // console.log('encryptedCoordinates', encryptedCoordinates);
     if (!att_code || !encryptedCoordinates) {
