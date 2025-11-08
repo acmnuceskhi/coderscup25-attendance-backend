@@ -7,9 +7,22 @@ const { Admin } = require('../models/Models');
 const router = express.Router();
 router.use(cookieParser());
 
+router.post("/register", async (req, res) => {
+    const { username, password } = req.body;
+  
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const admin = new Admin({ UserName: username, Password: hashedPassword });
+  
+    await admin.save();
+    res.json({ msg: "Admin created successfully!" });
+  });
+
+  
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
+        console.log("username: ", username);
+        console.log("password: ", password);
         const admin = await Admin.findOne({ UserName: username });
 
         if (!admin) {

@@ -13,21 +13,25 @@ const adminSchema = new mongoose.Schema({
   timestamps: true
 });
 
-const devDayAttendanceSchema = new mongoose.Schema({
-  consumerNumber: { type: String, required: true },
-  Team_Name: { type: String, required: true },
-  Leader_name: { type: String, required: true },
-  Leader_email: { type: String, required: true },
-  mem1_name: { type: String, default: "" },
-  mem1_email: { type: String, default: "" },
-  mem2_name: { type: String, default: "" },
-  mem2_email: { type: String, default: "" },
-  mem3_name: { type: String, default: "" },
-  mem3_email: { type: String, default: "" },
-  mem4_name: { type: String, default: "" },
-  mem4_email: { type: String, default: "" },
-  att_code: { type: String, required: true, unique: true },
-  Competition: { type: String, required: true },
+const CodersCupAttendanceSchema = new mongoose.Schema({
+  team_info: { type: String, default: "" },
+  team_name: { type: String, required: true },
+  vjudge_username: { type: String, default: "" },
+  competitionName: {type:String,default: ""},
+  leader_name: { type: String, required: true },
+  leader_email: { type: String, required: true },
+  leader_section: { type: String, default: "" },
+  leader_cnic: { type: String, default: "" },
+  leader_phone: { type: String, default: "" },
+
+  member1_name: { type: String, default: "" },
+  member1_email: { type: String, default: "" },
+  member1_section: { type: String, default: "" },
+
+  member2_name: { type: String, default: "" },
+  member2_email: { type: String, default: "" },
+  member2_section: { type: String, default: "" },
+  att_code: { type: String, unique: true },
   attendance: { type: Boolean, default: false },
 }, { timestamps: true });
 
@@ -37,7 +41,7 @@ const eventSchema = new mongoose.Schema({
   end_time: { type: Date, required: true },
 }, { timestamps: true });
 
-const DevDayAttendance = mongoose.model("DevDayAttendance", devDayAttendanceSchema);
+const CodersCupAttendance = mongoose.model("CodersCupAttendance", CodersCupAttendanceSchema,"CodersCupAttendance");
 const Event = mongoose.model("Event", eventSchema);
-const Admin = mongoose.model('Admin', adminSchema);
-module.exports = { Admin, DevDayAttendance, Event };
+const Admin = mongoose.model('Admin', adminSchema,"Admin");
+module.exports = { Admin, CodersCupAttendance, Event };

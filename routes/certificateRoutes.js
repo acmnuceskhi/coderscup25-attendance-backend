@@ -2,7 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const crypto = require("crypto");
-const { DevDayAttendance, Event } = require("../models/Models");
+const { CodersCupAttendance, Event } = require("../models/Models");
 const {
   generateTeamCertificateBuffers,
   generateCertificateBuffer,
@@ -336,7 +336,7 @@ router.post("/", rateLimiter, async (req, res) => {
     logger.info(
       `Certificate request received, attendance code: ${logger.val(att_code)}`
     );
-    const team = await DevDayAttendance.findOne({ att_code: att_code });
+    const team = await CodersCupAttendance.findOne({ att_code: att_code });
     if (!team) {
       logger.error(`Team not found with code ${logger.val(att_code)}`);
       metrics.failedRequests++;

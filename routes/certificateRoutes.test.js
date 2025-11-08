@@ -3,7 +3,7 @@ const express = require("express");
 
 // Mock the models
 jest.mock("../models/Models", () => ({
-  DevDayAttendance: {
+  CodersCupAttendance: {
     findOne: jest.fn().mockImplementation(({ att_code }) => {
       if (att_code === "AUTOMATION25") {
         return Promise.resolve({
@@ -11,17 +11,16 @@ jest.mock("../models/Models", () => ({
           Team_Name: "Team Automation",
           Leader_name: "Asfand Khanzada",
           Leader_email: "asfand.khanzada@example.com",
-          mem1_name: "Raahim Irfan",
-          mem1_email: "raahim.irfan@example.com",
-          mem2_name: "Abdullah Azhar Khan",
-          mem2_email: "abdullah.azhar.khan@example.com",
-          mem3_name: "Sarim Ahmed",
-          mem3_email: "sarim.ahmed@example.com",
-          mem4_name: "Kirish Kumar",
-          mem4_email: "kirish.kumar@example.com",
+          leader_section: "leader_section",
+          leader_cnic: "leader_cnic",
+          leader_phone: "leader_phone",
+          member1_name: "Raahim Irfan",
+          member1_email: "raahim.irfan@example.com",
+          member1_section: "member1_section",
+          member2_name: "Abdullah Azhar Khan",
+          member2_email: "abdullah.azhar.khan@example.com",
+          member2_section: "member2_section",
           att_code: "AUTOMATION25",
-          Competition: "SQL Saga",
-          attendance: true,
         });
       } else if (att_code === "invalid_att_code") {
         return Promise.resolve({
@@ -33,7 +32,17 @@ jest.mock("../models/Models", () => ({
           Competition: "Future SQL Saga",
           Team_Name: "Team Future",
           Leader_name: "Future Leader",
-          consumerNumber: "CN-003",
+          leader_email: "future_leader@example.com",
+          leader_section: "future_section",
+          leader_cnic: "future_cnic",
+          leader_phone: "future_phone",
+          member1_name: "Future Member 1",
+          member1_email: "future_member1@example.com",
+          member1_section: "future_section",
+          member2_name: "Future Member 2",
+          member2_email: "future_member2@example.com",
+          member2_section: "future_section",
+          att_code: "FUTURE25",
         });
       }
       return Promise.resolve(null);

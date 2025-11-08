@@ -1,5 +1,5 @@
 const { default: mongoose, MongooseError } = require("mongoose");
-const { Admin, DevDayAttendance, Event } = require("../models/Models");
+const { Admin, CodersCupAttendance, Event } = require("../models/Models");
 const express = require("express");
 const bcrypt = require("bcrypt");
 const router = express.Router();
@@ -15,7 +15,7 @@ router.post("/markAttendance", async (req, res) => {
   }
 
   try {
-    const team = await DevDayAttendance.findOne({ att_code: att_code });
+    const team = await CodersCupAttendance.findOne({ att_code: att_code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -35,7 +35,7 @@ router.post("/unmarkAttendance", async (req, res) => {
   }
 
   try {
-    const team = await DevDayAttendance.findOne({ att_code: att_code });
+    const team = await CodersCupAttendance.findOne({ att_code: att_code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -81,7 +81,7 @@ router.post("/updatetime", async (req, res) => {
 
 router.get("/getAllTeams", async (req, res) => {
   try {
-    const attendances = await DevDayAttendance.find();
+    const attendances = await CodersCupAttendance.find();
     res.json(attendances);
   } catch (err) {
     res.status(500).json({ message: err.message });

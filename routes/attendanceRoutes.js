@@ -1,6 +1,11 @@
 const express = require('express');
 const CryptoJS = require("crypto-js");
-const { DevDayAttendance, Event } = require('../models/Models');
+const { CodersCupAttendance, Event } = require('../models/Models');
+let uuidv4;
+(async () => {
+  const { v4 } = await import("uuid");
+  uuidv4 = v4;
+})();
 
 const router = express.Router();
 
@@ -19,6 +24,63 @@ const calculateDistance = (lat1, lng1, lat2, lng2) => {
 router.get('/', (req, res) => {
     res.json({ 'msg': 'Attendance routes' })
 });
+
+
+// // POST /participant-create
+// router.post("/participant-create", async (req, res) => {
+//   try {
+//     const {
+//       team_info,
+//       team_name,
+//       vjudge_username,
+//       leader_name,
+//       leader_email,
+//       leader_section,
+//       leader_cnic,
+//       leader_phone,
+//       member1_name,
+//       member1_email,
+//       member1_section,
+//       member2_name,
+//       member2_email,
+//       member2_section,
+//     } = req.body;
+
+//     // Generate unique attendance code
+//     const att_code = `CC-${uuidv4().slice(0, 8)}`;
+
+//     const newParticipant = new CodersCupAttendance({
+//       team_info,
+//       team_name,
+//       vjudge_username,
+//       leader_name,
+//       leader_email,
+//       leader_section,
+//       leader_cnic,
+//       leader_phone,
+//       member1_name,
+//       member1_email,
+//       member1_section,
+//       member2_name,
+//       member2_email,
+//       member2_section,
+//       att_code,
+//     });
+
+//     const savedParticipant = await newParticipant.save();
+
+//     res.status(201).json({
+//       msg: "Participant created successfully",
+//       participant: savedParticipant,
+//     });
+//   } catch (error) {
+//     console.error(error);
+//     if (error.code === 11000 && error.keyPattern && error.keyPattern.att_code) {
+//       return res.status(400).json({ msg: "Duplicate attendance code, try again" });
+//     }
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// });
 
 // to mark attendance - for general public
 // Attendance marking {location, code}
@@ -46,13 +108,13 @@ router.post('/mark', async (req, res) => {
     const distance = calculateDistance(latitude, longitude, centerLatitude, centerLongitude);
     if (distance <= 2500) {
         try {
-            const team = await DevDayAttendance.findOne({ att_code: att_code });
+            const team = await CodersCupAttendance.findOne({ att_code: att_code });
             if (!team) {
                 return res.status(404).json({ message: "Team not found" });
             }
 
             // check if the team code is valid
-            const event = await Event.findOne({ competitionName: team.Competition });
+            const event = await Event.findOne({ competitionName: team.competitionName });
             if (!event) {
                 return res.status(404).json({ message: "Event not found (invalid team code)" });
             }
