@@ -86,18 +86,20 @@ router.get('/', (req, res) => {
 // Attendance marking {location, code}
 router.post('/mark', async (req, res) => {
     console.log('Request received',req.body);
-    const { att_code, coordinates: encryptedCoordinates } = req.body;
+    const { att_code, coordinates } = req.body;
     // console.log('encryptedCoordinates', encryptedCoordinates);
-    if (!att_code || !encryptedCoordinates) {
+    if (!att_code || !coordinates) {
+        console.log('missing')
         return res.status(400).json({ message: "Parameters missing (att_code, coordinates)" });
     }
     const secretKey = process.env.COORDS_ENCRYPTION_KEY;
     let decrypted;
     try {
-        const bytes = CryptoJS.AES.decrypt(encryptedCoordinates, secretKey);
+        const bytes = CryptoJS.AES.decrypt(coordinates, secretKey);
         const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
         decrypted = JSON.parse(decryptedData);
     } catch (err) {
+        console.log('failed to decrypt')
         return res.status(400).json({ message: "Failed to decrypt coordinates" });
     }
     const { latitude, longitude } = decrypted;
@@ -109,6 +111,7 @@ router.post('/mark', async (req, res) => {
     const distance = calculateDistance(latitude, longitude, centerLatitude, centerLongitude);
     if (distance <= 2500) {
         try {
+            console.log('checkingg ')
             const team = await CodersCupAttendance.findOne({ att_code: att_code });
             if (!team) {
                 return res.status(404).json({ message: "Team not found" });
@@ -119,7 +122,7 @@ router.post('/mark', async (req, res) => {
             if (!event) {
                 return res.status(404).json({ message: "Event not found (invalid team code)" });
             }
-
+console.log('checkingg event')
             // check if the event is not ongoing
             const now = new Date();
             if (now < event.start_time || now > event.end_time) {
@@ -128,6 +131,7 @@ router.post('/mark', async (req, res) => {
 
             // check if the attendance is already marked
             if (team.attendance) {
+                console.log('alreadyy marked')
                 return res.status(409).json({
                     message: "Attendance is already marked for this team",
                     attendanceAlreadyMarked: true,
@@ -141,6 +145,7 @@ router.post('/mark', async (req, res) => {
             return res.status(500).json({ message: err.message });
         }
     } else {
+        console.log('out of range')
         return res.status(400).json({ message: "Out of allowed range! Attendance cannot be marked." });
     }
 });
