@@ -164,8 +164,8 @@ router.post('/mark', async (req, res) => {
                     team: mapTeamToSchema(team)
                 });
             }
-            console.log('not marked would save here')
-            // team["Attendance Marked"] = true;
+            // console.log('not marked would save here')
+            team["Attendance Marked"] = true;
             await team.save();
             
             return res.json({ message: "Attendance marked successfully", 
