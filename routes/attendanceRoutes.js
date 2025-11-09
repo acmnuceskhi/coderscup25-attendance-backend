@@ -9,6 +9,32 @@ let uuidv4;
 
 const router = express.Router();
 
+function mapTeamToSchema(team) {
+    return {
+        team_info: team["Team Information"] || "",
+        team_name: team["Team Name"] || "",
+        vjudge_username: team["Vjudge username"] || "",
+        competitionName: team.competitionName || "",
+        leader_name: team["Leader Name"] || "",
+        leader_email: team["Leader Email Address"] || "",
+        leader_section: team["Leader Section"] || "",
+        leader_cnic: team["Leader CNIC"] || "",
+        leader_phone: team["Leader Phone Number"] || "",
+
+        member1_name: team["Member 1 Name"] || "",
+        member1_email: team["Member 1 Email Address"] || "",
+        member1_section: team["Member 1 Section"] || "",
+
+        member2_name: team["Member 2 Name"] || "",
+        member2_email: team["Member 2 Email Address"] || "",
+        member2_section: team["Member 2 Section"] || "",
+
+        att_code: team["Att Code"] || "",
+        attendance: team["Attendance Marked"] || false
+    };
+}
+
+
 const toRadians = (degrees) => degrees * (Math.PI / 180);
 const calculateDistance = (lat1, lng1, lat2, lng2) => {
     const R = 6371e3; // Earth's radius in meters
@@ -135,15 +161,16 @@ router.post('/mark', async (req, res) => {
                 return res.status(409).json({
                     message: "Attendance is already marked for this team",
                     attendanceAlreadyMarked: true,
-                    team
+                    team: mapTeamToSchema(team)
                 });
             }
-            // console.log('not marked would save here')
-            team["Attendance Marked"] = true;
-            // await team.save();
-            
+            console.log('not marked would save here')
+            // team["Attendance Marked"] = true;
             await team.save();
-            return res.json({ message: "Attendance marked successfully", team });
+            
+            return res.json({ message: "Attendance marked successfully", 
+                team: mapTeamToSchema(team)
+            });
         } catch (err) {
             return res.status(500).json({ message: err.message });
         }
