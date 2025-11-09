@@ -15,7 +15,7 @@ router.post("/markAttendance", async (req, res) => {
   }
 
   try {
-    const team = await CodersCupAttendance.findOne({ att_code: att_code });
+    const team = await CodersCupAttendance.findOne({ "Att Code": att_code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }
@@ -35,7 +35,7 @@ router.post("/unmarkAttendance", async (req, res) => {
   }
 
   try {
-    const team = await CodersCupAttendance.findOne({ att_code: att_code });
+    const team = await CodersCupAttendance.findOne({ "Att Code": att_code });
     if (!team) {
       return res.status(404).json({ message: "Team not found" });
     }

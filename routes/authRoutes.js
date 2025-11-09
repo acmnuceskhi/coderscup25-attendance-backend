@@ -21,8 +21,8 @@ router.post("/register", async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const { username, password } = req.body;
-        console.log("username: ", username);
-        console.log("password: ", password);
+        // console.log("username: ", username);
+        // console.log("password: ", password);
         const admin = await Admin.findOne({ UserName: username });
 
         if (!admin) {

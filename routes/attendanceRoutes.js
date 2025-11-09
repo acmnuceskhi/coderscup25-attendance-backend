@@ -85,11 +85,11 @@ router.get('/', (req, res) => {
 // to mark attendance - for general public
 // Attendance marking {location, code}
 router.post('/mark', async (req, res) => {
-    console.log('Request received',req.body);
+    // console.log('Request received',req.body);
     const { att_code, coordinates } = req.body;
     // console.log('encryptedCoordinates', encryptedCoordinates);
     if (!att_code || !coordinates) {
-        console.log('missing')
+        // console.log('missing')
         return res.status(400).json({ message: "Parameters missing (att_code, coordinates)" });
     }
     const secretKey = process.env.COORDS_ENCRYPTION_KEY;
@@ -99,7 +99,7 @@ router.post('/mark', async (req, res) => {
         const decryptedData = bytes.toString(CryptoJS.enc.Utf8);
         decrypted = JSON.parse(decryptedData);
     } catch (err) {
-        console.log('failed to decrypt')
+        // console.log('failed to decrypt')
         return res.status(400).json({ message: "Failed to decrypt coordinates" });
     }
     const { latitude, longitude } = decrypted;
@@ -111,34 +111,37 @@ router.post('/mark', async (req, res) => {
     const distance = calculateDistance(latitude, longitude, centerLatitude, centerLongitude);
     if (distance <= 2500) {
         try {
-            console.log('checkingg ')
-            const team = await CodersCupAttendance.findOne({ att_code: att_code });
+            // console.log('checkingg ')
+            const team = await CodersCupAttendance.findOne({ "Att Code": att_code });
             if (!team) {
                 return res.status(404).json({ message: "Team not found" });
             }
 
-            // check if the team code is valid
-            const event = await Event.findOne({ competitionName: team.competitionName });
-            if (!event) {
-                return res.status(404).json({ message: "Event not found (invalid team code)" });
-            }
-console.log('checkingg event')
-            // check if the event is not ongoing
-            const now = new Date();
-            if (now < event.start_time || now > event.end_time) {
-                return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
-            }
+//             // check if the team code is valid
+//             const event = await Event.findOne({ competitionName: team.competitionName });
+//             if (!event) {
+//                 return res.status(404).json({ message: "Event not found (invalid team code)" });
+//             }
+// // console.log('checkingg event')
+//             // check if the event is not ongoing
+//             const now = new Date();
+//             if (now < event.start_time || now > event.end_time) {
+//                 return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
+//             }
 
             // check if the attendance is already marked
-            if (team.attendance) {
-                console.log('alreadyy marked')
+            if (team["Attendance Marked"]) {
+                console.log('already marked');
                 return res.status(409).json({
                     message: "Attendance is already marked for this team",
                     attendanceAlreadyMarked: true,
                     team
                 });
             }
-            team.attendance = true;
+            // console.log('not marked would save here')
+            team["Attendance Marked"] = true;
+            // await team.save();
+            
             await team.save();
             return res.json({ message: "Attendance marked successfully", team });
         } catch (err) {

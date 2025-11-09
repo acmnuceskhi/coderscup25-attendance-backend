@@ -14,25 +14,26 @@ const adminSchema = new mongoose.Schema({
 });
 
 const CodersCupAttendanceSchema = new mongoose.Schema({
-  team_info: { type: String, default: "" },
-  team_name: { type: String, required: true },
-  vjudge_username: { type: String, default: "" },
-  competitionName: {type:String,default: ""},
-  leader_name: { type: String, required: true },
-  leader_email: { type: String, required: true },
-  leader_section: { type: String, default: "" },
-  leader_cnic: { type: String, default: "" },
-  leader_phone: { type: String, default: "" },
+  "Team Information": { type: String, default: "" },
+  "Team Name": { type: String, required: true },
+  "Vjudge username": { type: String, default: "" },
+  "Leader Name": { type: String, required: true },
+  "Leader Email Address": { type: String, required: true },
+  "Leader Section": { type: String, default: "" },
+  "Leader CNIC": { type: String, default: "" },
+  "Leader Phone Number": { type: String, default: "" },
 
-  member1_name: { type: String, default: "" },
-  member1_email: { type: String, default: "" },
-  member1_section: { type: String, default: "" },
+  "Member 1 Name": { type: String, default: "" },
+  "Member 1 Email Address": { type: String, default: "" },
+  "Member 1 Section": { type: String, default: "" },
 
-  member2_name: { type: String, default: "" },
-  member2_email: { type: String, default: "" },
-  member2_section: { type: String, default: "" },
-  att_code: { type: String, unique: true },
-  attendance: { type: Boolean, default: false },
+  "Member 2 Name": { type: String, default: "" },
+  "Member 2 Email Address": { type: String, default: "" },
+  "Member 2 Section": { type: String, default: "" },
+
+  "Att Code": { type: String, unique: true },
+  "Attendance Marked": { type: Boolean, default: false },
+
 }, { timestamps: true });
 
 const eventSchema = new mongoose.Schema({
