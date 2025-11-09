@@ -46,7 +46,8 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(
   cors({
-    origin: ["http://localhost:5173","https://coderscup-attendance-frontend.vercel.app","https://attendance.acmnuceskhi.com"], // Frontend URLs
+    origin: ["http://localhost:5173","https://coderscup-attendance-frontend.vercel.app",
+      "https://attendance.acmnuceskhi.com","www.attendance.acmnuceskhi.com"], // Frontend URLs
     credentials: true, // Allow credentials (cookies, authorization headers)
   })
 );
