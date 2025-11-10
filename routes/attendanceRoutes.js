@@ -143,17 +143,18 @@ router.post('/mark', async (req, res) => {
                 return res.status(404).json({ message: "Team not found" });
             }
 
-//             // check if the team code is valid
-//             const event = await Event.findOne({ competitionName: team.competitionName });
-//             if (!event) {
-//                 return res.status(404).json({ message: "Event not found (invalid team code)" });
-//             }
-// // console.log('checkingg event')
-//             // check if the event is not ongoing
-//             const now = new Date();
-//             if (now < event.start_time || now > event.end_time) {
-//                 return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
-//             }
+            // check if the team code is valid
+            const event = await Event.findOne({ competitionName: "Competitive Programming" });
+            if (!event) {
+                return res.status(404).json({ message: "Event not found (invalid team code)" });
+            }
+// console.log('checkingg event')
+            // check if the event is not ongoing
+            const now = new Date();
+            const pakistanTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
+            if (pakistanTime < event.start_time || pakistanTime > event.end_time) {
+                return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
+            }
 
             // check if the attendance is already marked
             if (team["Attendance Marked"]) {

@@ -44,7 +44,7 @@ router.post("/markAttendance", async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    team.attendance = true;
+    team["Attendance Marked"] = true;
     await team.save();
     return res.json({ message: "Attendance marked successfully",  team: mapTeamToSchema(team)
     });
@@ -65,7 +65,7 @@ router.post("/unmarkAttendance", async (req, res) => {
       return res.status(404).json({ message: "Team not found" });
     }
 
-    team.attendance = false;
+    team["Attendance Marked"] = false;
     await team.save();
     return res.json({ message: "Attendance unmarked successfully", team: mapTeamToSchema(team) });
   } catch (err) {
