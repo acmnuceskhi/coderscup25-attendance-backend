@@ -24,13 +24,6 @@ global.circuitBreakers.set("certificate_generator", {
   consecutiveFailureThreshold: 5,
 });
 
-const VerifyJWT = require("./middleware/AuthJWT");
-const authRoutes = require("./routes/authRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const attendanceRoutes = require("./routes/attendanceRoutes");
-const certificateRoutes = require("./routes/certificateRoutes");
-const monitoringRoutes = require("./routes/monitoringRoutes");
-
 // Safe logger import
 let logger;
 try {
@@ -41,6 +34,45 @@ try {
     warn: (...args) => console.warn(...args),
     info: (...args) => console.log(...args),
   };
+}
+
+// Load routes with error handling
+let VerifyJWT, authRoutes, adminRoutes, attendanceRoutes, certificateRoutes, monitoringRoutes;
+
+try {
+  VerifyJWT = require("./middleware/AuthJWT");
+} catch (e) {
+  logger.error("Failed to load VerifyJWT:", e.message);
+}
+
+try {
+  authRoutes = require("./routes/authRoutes");
+} catch (e) {
+  logger.error("Failed to load authRoutes:", e.message);
+}
+
+try {
+  adminRoutes = require("./routes/adminRoutes");
+} catch (e) {
+  logger.error("Failed to load adminRoutes:", e.message);
+}
+
+try {
+  attendanceRoutes = require("./routes/attendanceRoutes");
+} catch (e) {
+  logger.error("Failed to load attendanceRoutes:", e.message);
+}
+
+try {
+  certificateRoutes = require("./routes/certificateRoutes");
+} catch (e) {
+  logger.error("Failed to load certificateRoutes:", e.message);
+}
+
+try {
+  monitoringRoutes = require("./routes/monitoringRoutes");
+} catch (e) {
+  logger.error("Failed to load monitoringRoutes:", e.message);
 }
 
 const app = express();
@@ -182,11 +214,26 @@ app.get("/health", (req, res) => {
   }
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/admin", VerifyJWT, adminRoutes);
-app.use("/api/attendance", attendanceRoutes);
-app.use("/api/certificates", certificateRoutes);
-app.use("/admin/monitoring", monitoringRoutes);
+// Register routes only if they loaded successfully
+if (authRoutes) {
+  app.use("/api/auth", authRoutes);
+}
+
+if (VerifyJWT && adminRoutes) {
+  app.use("/api/admin", VerifyJWT, adminRoutes);
+}
+
+if (attendanceRoutes) {
+  app.use("/api/attendance", attendanceRoutes);
+}
+
+if (certificateRoutes) {
+  app.use("/api/certificates", certificateRoutes);
+}
+
+if (monitoringRoutes) {
+  app.use("/admin/monitoring", monitoringRoutes);
+}
 
 app.post("/addteam", async (req, res) => {
   try {
