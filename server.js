@@ -174,17 +174,26 @@ function gracefulShutdown() {
 // Export mongoose for monitoring routes
 global.mongoose = mongoose;
 
+// Connect to MongoDB
 mongoose
   .connect(process.env.MONGO_URI)
   .then(() => {
-    app.listen(process.env.PORT, () => {
-      logger.info(`Connected and listening to requests on ${process.env.PORT}`);
-
-      // Start the memory monitor after server is running
-      memoryMonitor.start();
-      logger.info("Memory monitoring activated");
-    });
+    logger.info("Database connected successfully");
+    // Start the memory monitor after database is connected
+    memoryMonitor.start();
+    logger.info("Memory monitoring activated");
   })
   .catch((error) => {
     logger.error(`Database connection failed: ${error.message}`);
   });
+
+// Only start server if not in serverless environment (Vercel)
+if (process.env.VERCEL !== "1") {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    logger.info(`Server listening on port ${PORT}`);
+  });
+}
+
+// Export app for Vercel serverless
+module.exports = app;
