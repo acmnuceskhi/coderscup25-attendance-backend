@@ -30,8 +30,40 @@ const attendanceRoutes = require("./routes/attendanceRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const monitoringRoutes = require("./routes/monitoringRoutes");
 const logger = require("./utils/logger")("Server");
+const mongoose = require("mongoose");
 
 const app = express();
+
+// Lazy MongoDB connection for serverless
+let isConnected = false;
+
+async function connectToDatabase() {
+  if (isConnected) {
+    return;
+  }
+
+  if (!process.env.MONGO_URI) {
+    console.warn('MONGO_URI not set');
+    return;
+  }
+
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
+    console.log('Database connected successfully');
+  } catch (error) {
+    console.error('Database connection failed:', error.message);
+  }
+}
+
+// Middleware to ensure database connection before handling requests
+app.use(async (req, res, next) => {
+  await connectToDatabase();
+  next();
+});
+
+// Export mongoose for monitoring routes
+global.mongoose = mongoose;
 
 // Configure EJS
 app.set("view engine", "ejs");
