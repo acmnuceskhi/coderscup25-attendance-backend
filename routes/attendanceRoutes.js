@@ -150,11 +150,13 @@ router.post('/mark', async (req, res) => {
             }
 // console.log('checkingg event')
             // check if the event is not ongoing
-            const now = new Date();
-            const pakistanTime = new Date(now.getTime() + 5 * 60 * 60 * 1000);
-            if (pakistanTime < event.start_time || pakistanTime > event.end_time) {
-                return res.status(400).json({ message: "The competition is not currently ongoing! Attendance cannot be marked." });
-            }
+            const now = new Date(); // UTC
+if (now < event.start_time || now > event.end_time) {
+  return res.status(400).json({
+    message: "The competition is not currently ongoing! Attendance cannot be marked.",
+  });
+}
+
 
             // check if the attendance is already marked
             if (team["Attendance Marked"]) {
