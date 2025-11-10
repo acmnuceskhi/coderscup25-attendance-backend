@@ -1,5 +1,6 @@
 // This file exports the Express app for Vercel serverless functions
-const app = require('../server');
-
-module.exports = app;
+// Test if basic serverless function works first
+module.exports = (req, res) => {
+  res.status(200).send('Hello DevDay25!');
+};
 
