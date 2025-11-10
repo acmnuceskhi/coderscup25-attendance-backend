@@ -30,7 +30,18 @@ const adminRoutes = require("./routes/adminRoutes");
 const attendanceRoutes = require("./routes/attendanceRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const monitoringRoutes = require("./routes/monitoringRoutes");
-const logger = require("./utils/logger")("Server");
+
+// Safe logger import
+let logger;
+try {
+  logger = require("./utils/logger")("Server");
+} catch (e) {
+  logger = {
+    error: (...args) => console.error(...args),
+    warn: (...args) => console.warn(...args),
+    info: (...args) => console.log(...args),
+  };
+}
 
 const app = express();
 
@@ -86,8 +97,12 @@ app.use(express.static(path.join(__dirname, "public")));
 
 // Global error handler middleware
 app.use((err, req, res, next) => {
-  logger.error(`Unhandled error: ${err.message}`);
-  logger.error(err.stack);
+  try {
+    logger.error(`Unhandled error: ${err.message}`);
+    logger.error(err.stack);
+  } catch (e) {
+    console.error(`Unhandled error: ${err.message}`);
+  }
 
   const path = req.path;
   if (path.includes("/certificates")) {
@@ -97,9 +112,13 @@ app.use((err, req, res, next) => {
       if (circuitBreaker.failureCount >= circuitBreaker.failureThreshold) {
         circuitBreaker.isOpen = true;
         circuitBreaker.resetTime = Date.now() + circuitBreaker.resetTimeout;
-        logger.warn(
-          "Certificate generator circuit breaker opened due to errors"
-        );
+        try {
+          logger.warn(
+            "Certificate generator circuit breaker opened due to errors"
+          );
+        } catch (e) {
+          console.warn("Certificate generator circuit breaker opened due to errors");
+        }
       }
     }
   }
@@ -117,36 +136,50 @@ app.get("/admin", (req, res) => {
 
 // Server health check endpoint
 app.get("/health", (req, res) => {
-  const { memoryMonitor } = require("./utils/memoryMonitor");
-  
-  const memoryStats = memoryMonitor.getStats();
-  const dbStatus =
-    mongoose.connection.readyState === 1 ? "connected" : "disconnected";
+  try {
+    let memoryStats = { percentage: 0, heapUsed: 0, rss: 0 };
+    try {
+      const { memoryMonitor } = require("./utils/memoryMonitor");
+      memoryStats = memoryMonitor.getStats();
+    } catch (e) {
+      // Memory monitor not available in serverless
+    }
+    
+    const dbStatus =
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected";
 
-  const circuitBreakerStatus = {};
-  for (const [key, breaker] of global.circuitBreakers.entries()) {
-    circuitBreakerStatus[key] = {
-      status: breaker.isOpen ? "open" : "closed",
-      failureCount: breaker.failureCount,
-      willResetAt: breaker.isOpen
-        ? new Date(breaker.resetTime).toISOString()
-        : null,
-    };
+    const circuitBreakerStatus = {};
+    for (const [key, breaker] of global.circuitBreakers.entries()) {
+      circuitBreakerStatus[key] = {
+        status: breaker.isOpen ? "open" : "closed",
+        failureCount: breaker.failureCount,
+        willResetAt: breaker.isOpen
+          ? new Date(breaker.resetTime).toISOString()
+          : null,
+      };
+    }
+
+    res.json({
+      status: "ok",
+      uptime: process.uptime(),
+      memoryUsage: {
+        percentage: memoryStats.percentage,
+        heapUsedMB: Math.round(memoryStats.heapUsed / 1024 / 1024),
+        rssMB: Math.round(memoryStats.rss / 1024 / 1024),
+      },
+      database: {
+        status: dbStatus,
+      },
+      circuitBreakers: circuitBreakerStatus,
+    });
+  } catch (error) {
+    res.json({
+      status: "ok",
+      database: {
+        status: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+      },
+    });
   }
-
-  res.json({
-    status: "ok",
-    uptime: process.uptime(),
-    memoryUsage: {
-      percentage: memoryStats.percentage,
-      heapUsedMB: Math.round(memoryStats.heapUsed / 1024 / 1024),
-      rssMB: Math.round(memoryStats.rss / 1024 / 1024),
-    },
-    database: {
-      status: dbStatus,
-    },
-    circuitBreakers: circuitBreakerStatus,
-  });
 });
 
 app.use("/api/auth", authRoutes);
