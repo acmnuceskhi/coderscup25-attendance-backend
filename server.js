@@ -174,18 +174,55 @@ function gracefulShutdown() {
 // Export mongoose for monitoring routes
 global.mongoose = mongoose;
 
-// Connect to MongoDB
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
+// For serverless: Lazy MongoDB connection
+let isConnecting = false;
+let isConnected = false;
+
+async function connectToDatabase() {
+  if (isConnected) {
+    return;
+  }
+  
+  if (isConnecting) {
+    // Wait for the existing connection attempt
+    await new Promise(resolve => setTimeout(resolve, 100));
+    return connectToDatabase();
+  }
+  
+  isConnecting = true;
+  
+  try {
+    if (!process.env.MONGO_URI) {
+      logger.warn("MONGO_URI not set, running without database");
+      isConnecting = false;
+      return;
+    }
+    
+    await mongoose.connect(process.env.MONGO_URI);
+    isConnected = true;
     logger.info("Database connected successfully");
-    // Start the memory monitor after database is connected
-    memoryMonitor.start();
-    logger.info("Memory monitoring activated");
-  })
-  .catch((error) => {
+    
+    // Start the memory monitor after database is connected (only if not in serverless)
+    if (process.env.VERCEL !== "1") {
+      memoryMonitor.start();
+      logger.info("Memory monitoring activated");
+    }
+  } catch (error) {
     logger.error(`Database connection failed: ${error.message}`);
+  } finally {
+    isConnecting = false;
+  }
+}
+
+// Middleware to ensure database connection for each request in serverless
+if (process.env.VERCEL === "1") {
+  app.use((req, res, next) => {
+    connectToDatabase().then(() => next()).catch(() => next());
   });
+} else {
+  // For local development, connect immediately
+  connectToDatabase();
+}
 
 // Only start server if not in serverless environment (Vercel)
 if (process.env.VERCEL !== "1") {
