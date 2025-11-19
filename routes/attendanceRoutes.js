@@ -151,7 +151,9 @@ router.post('/mark', async (req, res) => {
 // console.log('checkingg event')
             // check if the event is not ongoing
             const now = new Date(); // UTC
-if (now < event.start_time || now > event.end_time) {
+          const start = new Date(event.start_time);
+const end = new Date(event.end_time);
+if (now < start || now > end) {
   return res.status(400).json({
     message: "The competition is not currently ongoing! Attendance cannot be marked.",
   });
