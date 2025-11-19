@@ -144,7 +144,7 @@ router.post('/mark', async (req, res) => {
             }
 
             // check if the team code is valid
-            const event = await Event.findOne({ competitionName: "Competitive Programming" });
+            const event = await Event.findOne({ competitionName: team["Competition Name"] });
             if (!event) {
                 return res.status(404).json({ message: "Event not found (invalid team code)" });
             }
